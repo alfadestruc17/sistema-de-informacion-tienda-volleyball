@@ -13,41 +13,32 @@
         .product-item:hover {
             background-color: #f3f4f6;
         }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto p-4">
         <h1 class="text-2xl font-bold mb-4">Punto de Venta - Consumo en Reserva</h1>
 
+        <!-- Selector de Reserva -->
+        <div class="mb-4 bg-white p-4 rounded shadow">
+            <h2 class="text-lg font-semibold mb-2">Seleccionar Reserva (Opcional)</h2>
+            <div class="flex gap-2">
+                <input type="number" id="reservation-id" placeholder="ID de Reserva" class="border p-2 rounded flex-1">
+                <button onclick="loadReservation()" class="bg-blue-500 text-white px-4 py-2 rounded">Cargar</button>
+            </div>
+            <div id="reservation-info" class="mt-2 text-sm text-gray-600"></div>
+        </div>
+
         <div class="grid grid-cols-3 gap-4">
             <!-- Panel de Productos -->
             <div class="col-span-2">
                 <h2 class="text-lg font-semibold mb-2">Productos Disponibles</h2>
-                <div class="grid grid-cols-3 gap-2 mb-4">
-                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Coca Cola', 3.50)">
-                        <div class="font-semibold">Coca Cola</div>
-                        <div class="text-gray-600">$3.50</div>
-                    </div>
-                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Pepsi', 3.00)">
-                        <div class="font-semibold">Pepsi</div>
-                        <div class="text-gray-600">$3.00</div>
-                    </div>
-                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Agua Mineral', 2.00)">
-                        <div class="font-semibold">Agua Mineral</div>
-                        <div class="text-gray-600">$2.00</div>
-                    </div>
-                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Papas Fritas', 4.50)">
-                        <div class="font-semibold">Papas Fritas</div>
-                        <div class="text-gray-600">$4.50</div>
-                    </div>
-                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Hamburguesa', 8.00)">
-                        <div class="font-semibold">Hamburguesa</div>
-                        <div class="text-gray-600">$8.00</div>
-                    </div>
-                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Pelota de Voleibol', 15.00)">
-                        <div class="font-semibold">Pelota de Voleibol</div>
-                        <div class="text-gray-600">$15.00</div>
-                    </div>
+                <div id="products-grid" class="grid grid-cols-3 gap-2 mb-4">
+                    <!-- Productos se cargarán dinámicamente -->
                 </div>
 
                 <div class="mb-4">
@@ -58,34 +49,21 @@
             <!-- Panel de Orden -->
             <div>
                 <h2 class="text-lg font-semibold mb-2">Orden Actual</h2>
-                <div class="bg-white p-4 rounded shadow mb-4">
+                <div id="order-header" class="bg-white p-4 rounded shadow mb-4">
                     <div class="mb-2">
-                        <strong>Reserva ID:</strong> #12345
+                        <strong>Orden ID:</strong> <span id="order-id">Nueva Orden</span>
                     </div>
-                    <div class="mb-2">
-                        <strong>Cliente:</strong> Juan Pérez
-                    </div>
-                    <div class="mb-2">
-                        <strong>Cancha:</strong> Cancha 1
-                    </div>
-                    <div class="mb-2">
-                        <strong>Fecha/Hora:</strong> 2025-10-03 14:00
+                    <div id="reservation-details">
+                        <!-- Detalles de reserva se cargarán aquí -->
                     </div>
                 </div>
 
-                <div id="order-items" class="bg-white p-4 rounded shadow mb-4">
+                <div id="order-items" class="bg-white p-4 rounded shadow mb-4 min-h-32">
                     <!-- Items se agregarán aquí dinámicamente -->
+                    <p class="text-gray-500 text-center py-8">No hay items en la orden</p>
                 </div>
 
                 <div class="bg-white p-4 rounded shadow">
-                    <div class="flex justify-between mb-2">
-                        <span>Subtotal:</span>
-                        <span id="subtotal">$0.00</span>
-                    </div>
-                    <div class="flex justify-between mb-2">
-                        <span>IVA (19%):</span>
-                        <span id="iva">$0.00</span>
-                    </div>
                     <div class="flex justify-between font-bold text-lg">
                         <span>Total:</span>
                         <span id="total">$0.00</span>
@@ -93,7 +71,7 @@
                 </div>
 
                 <div class="mt-4 flex gap-2">
-                    <button class="bg-blue-500 text-white px-4 py-2 rounded flex-1" onclick="chargeOrder()">Cobrar</button>
+                    <button id="charge-btn" class="bg-blue-500 text-white px-4 py-2 rounded flex-1" onclick="chargeOrder()" disabled>Cobrar</button>
                     <button class="bg-gray-500 text-white px-4 py-2 rounded flex-1" onclick="clearOrder()">Limpiar</button>
                 </div>
             </div>
@@ -132,98 +110,248 @@
     </div>
 
     <script>
-        let orderItems = [];
-        let subtotal = 0;
+        const API_BASE = 'http://localhost:8000'; // Ajustar según el puerto del servidor
+        let currentOrder = null;
+        let products = [];
+        let currentReservation = null;
 
-        function addToOrder(productName, price) {
-            const existingItem = orderItems.find(item => item.name === productName);
-            if (existingItem) {
-                existingItem.quantity++;
-            } else {
-                orderItems.push({ name: productName, price: price, quantity: 1 });
+        // Obtener token de autenticación (de localStorage o similar)
+        function getAuthToken() {
+            return localStorage.getItem('auth_token');
+        }
+
+        // Headers para requests autenticados
+        function getAuthHeaders() {
+            const token = getAuthToken();
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : '',
+                'Accept': 'application/json'
+            };
+        }
+
+        // Cargar productos desde API
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_BASE}/api/products`, {
+                    headers: getAuthHeaders()
+                });
+
+                if (!response.ok) throw new Error('Error al cargar productos');
+
+                products = await response.json();
+                displayProducts(products);
+            } catch (error) {
+                console.error('Error loading products:', error);
+                alert('Error al cargar productos. Verifica la conexión.');
             }
-            updateOrderDisplay();
         }
 
-        function updateOrderDisplay() {
-            const orderItemsDiv = document.getElementById('order-items');
-            orderItemsDiv.innerHTML = '';
+        // Mostrar productos en el grid
+        function displayProducts(productsList) {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = '';
 
-            subtotal = 0;
-            orderItems.forEach((item, index) => {
-                const itemTotal = item.price * item.quantity;
-                subtotal += itemTotal;
-
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'flex justify-between items-center mb-2';
-                itemDiv.innerHTML = `
-                    <span>${item.name} x${item.quantity}</span>
-                    <span>$${itemTotal.toFixed(2)}</span>
-                    <button onclick="removeItem(${index})" class="text-red-500 ml-2">×</button>
+            productsList.forEach(product => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product-item bg-white p-4 rounded shadow';
+                productDiv.onclick = () => addProductToOrder(product);
+                productDiv.innerHTML = `
+                    <div class="font-semibold">${product.nombre}</div>
+                    <div class="text-gray-600">$${parseFloat(product.precio).toFixed(2)}</div>
+                    <div class="text-sm text-gray-500">Stock: ${product.stock}</div>
                 `;
-                orderItemsDiv.appendChild(itemDiv);
+                grid.appendChild(productDiv);
             });
-
-            const iva = subtotal * 0.19;
-            const total = subtotal + iva;
-
-            document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
-            document.getElementById('iva').textContent = `$${iva.toFixed(2)}`;
-            document.getElementById('total').textContent = `$${total.toFixed(2)}`;
         }
 
-        function removeItem(index) {
-            orderItems.splice(index, 1);
-            updateOrderDisplay();
+        // Cargar reserva por ID
+        async function loadReservation() {
+            const reservationId = document.getElementById('reservation-id').value;
+            if (!reservationId) {
+                alert('Ingresa un ID de reserva');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/reservations/${reservationId}`, {
+                    headers: getAuthHeaders()
+                });
+
+                if (!response.ok) throw new Error('Reserva no encontrada');
+
+                currentReservation = await response.json();
+                displayReservationInfo(currentReservation);
+            } catch (error) {
+                console.error('Error loading reservation:', error);
+                alert('Error al cargar la reserva');
+            }
         }
 
+        // Mostrar información de la reserva
+        function displayReservationInfo(reservation) {
+            const infoDiv = document.getElementById('reservation-info');
+            infoDiv.innerHTML = `
+                <div><strong>Cliente:</strong> ${reservation.user.name}</div>
+                <div><strong>Cancha:</strong> ${reservation.court.nombre}</div>
+                <div><strong>Fecha/Hora:</strong> ${reservation.fecha} ${reservation.hora_inicio}</div>
+                <div><strong>Estado:</strong> ${reservation.estado}</div>
+            `;
+        }
+
+        // Crear nueva orden
+        async function createOrder() {
+            const reservationId = currentReservation ? currentReservation.id : null;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/orders`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        reservation_id: reservationId
+                    })
+                });
+
+                if (!response.ok) throw new Error('Error al crear orden');
+
+                currentOrder = await response.json();
+                updateOrderDisplay();
+                document.getElementById('charge-btn').disabled = false;
+            } catch (error) {
+                console.error('Error creating order:', error);
+                alert('Error al crear la orden');
+            }
+        }
+
+        // Agregar producto a la orden
+        async function addProductToOrder(product) {
+            if (!currentOrder) {
+                await createOrder();
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/orders/${currentOrder.id}/items`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        product_id: product.id,
+                        cantidad: 1
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Error al agregar producto');
+                }
+
+                const updatedOrder = await response.json();
+                currentOrder = updatedOrder;
+                updateOrderDisplay();
+            } catch (error) {
+                console.error('Error adding product:', error);
+                alert(error.message);
+            }
+        }
+
+        // Actualizar display de la orden
+        function updateOrderDisplay() {
+            const orderIdSpan = document.getElementById('order-id');
+            const itemsDiv = document.getElementById('order-items');
+            const totalSpan = document.getElementById('total');
+
+            if (!currentOrder) {
+                orderIdSpan.textContent = 'Nueva Orden';
+                itemsDiv.innerHTML = '<p class="text-gray-500 text-center py-8">No hay items en la orden</p>';
+                totalSpan.textContent = '$0.00';
+                return;
+            }
+
+            orderIdSpan.textContent = `#${currentOrder.id}`;
+            itemsDiv.innerHTML = '';
+
+            if (currentOrder.order_items && currentOrder.order_items.length > 0) {
+                currentOrder.order_items.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'flex justify-between items-center mb-2 p-2 border-b';
+                    itemDiv.innerHTML = `
+                        <span>${item.product.nombre} x${item.cantidad}</span>
+                        <span>$${(item.cantidad * item.precio_unitario).toFixed(2)}</span>
+                        <button onclick="removeItem(${item.id})" class="text-red-500 ml-2">×</button>
+                    `;
+                    itemsDiv.appendChild(itemDiv);
+                });
+            } else {
+                itemsDiv.innerHTML = '<p class="text-gray-500 text-center py-8">No hay items en la orden</p>';
+            }
+
+            totalSpan.textContent = `$${parseFloat(currentOrder.total || 0).toFixed(2)}`;
+        }
+
+        // Remover item de la orden
+        async function removeItem(itemId) {
+            if (!currentOrder) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/orders/${currentOrder.id}/items/${itemId}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (!response.ok) throw new Error('Error al remover item');
+
+                const updatedOrder = await response.json();
+                currentOrder = updatedOrder;
+                updateOrderDisplay();
+            } catch (error) {
+                console.error('Error removing item:', error);
+                alert('Error al remover el item');
+            }
+        }
+
+        // Limpiar orden
         function clearOrder() {
-            orderItems = [];
+            currentOrder = null;
             updateOrderDisplay();
+            document.getElementById('charge-btn').disabled = true;
         }
 
-        function chargeOrder() {
-            if (orderItems.length === 0) {
+        // Cobrar orden
+        async function chargeOrder() {
+            if (!currentOrder || !currentOrder.order_items || currentOrder.order_items.length === 0) {
                 alert('No hay items en la orden');
                 return;
             }
 
-            document.getElementById('payment-total').textContent = document.getElementById('total').textContent;
-            document.getElementById('payment-modal').classList.remove('hidden');
-        }
+            if (confirm(`¿Confirmar cobro de $${parseFloat(currentOrder.total).toFixed(2)}?`)) {
+                try {
+                    const response = await fetch(`${API_BASE}/api/orders/${currentOrder.id}/close`, {
+                        method: 'PATCH',
+                        headers: getAuthHeaders()
+                    });
 
-        function closePaymentModal() {
-            document.getElementById('payment-modal').classList.add('hidden');
-        }
+                    if (!response.ok) throw new Error('Error al cerrar la orden');
 
-        function processPayment() {
-            const total = parseFloat(document.getElementById('payment-total').textContent.replace('$', ''));
-            const received = parseFloat(document.getElementById('amount-received').value) || 0;
-            const change = received - total;
-
-            if (change < 0) {
-                alert('Monto insuficiente');
-                return;
+                    alert('Orden cerrada exitosamente');
+                    clearOrder();
+                } catch (error) {
+                    console.error('Error closing order:', error);
+                    alert('Error al cerrar la orden');
+                }
             }
-
-            document.getElementById('change').textContent = `$${change.toFixed(2)}`;
-            alert('Pago procesado exitosamente');
-            clearOrder();
-            closePaymentModal();
         }
 
         // Búsqueda de productos
         document.getElementById('search-product').addEventListener('input', function(e) {
             const searchTerm = e.target.value.toLowerCase();
-            const products = document.querySelectorAll('.product-item');
-            products.forEach(product => {
-                const productName = product.querySelector('.font-semibold').textContent.toLowerCase();
-                if (productName.includes(searchTerm)) {
-                    product.style.display = 'block';
-                } else {
-                    product.style.display = 'none';
-                }
-            });
+            const filteredProducts = products.filter(product =>
+                product.nombre.toLowerCase().includes(searchTerm)
+            );
+            displayProducts(filteredProducts);
+        });
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProducts();
         });
     </script>
 </body>

@@ -40,10 +40,10 @@ class Reservation extends Model
         return $this->hasMany(ReservationItem::class);
     }
 
-    // public function orders()
-    // {
-    //     return $this->hasMany(Order::class);
-    // }
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 
     public static function isSlotAvailable($courtId, $fecha, $horaInicio, $duracionHoras)
     {
