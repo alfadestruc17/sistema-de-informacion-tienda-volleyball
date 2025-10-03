@@ -9,3 +9,7 @@ Route::get('/', function () {
 
 Route::post('/api/auth/register', [AuthController::class, 'register']);
 Route::post('/api/auth/login', [AuthController::class, 'login']);
+
+Route::middleware('auth')->group(function () {
+    Route::apiResource('/api/courts', \App\Http\Controllers\CourtController::class)->middleware('role:admin');
+});

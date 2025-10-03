@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Court;
 use Illuminate\Http\Request;
 
 class CourtController extends Controller
@@ -11,7 +12,7 @@ class CourtController extends Controller
      */
     public function index()
     {
-        //
+        return response()->json(Court::all());
     }
 
     /**
@@ -27,7 +28,15 @@ class CourtController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'nombre' => 'required|string',
+            'descripcion' => 'nullable|string',
+            'precio_por_hora' => 'required|numeric',
+            'estado' => 'required|in:activo,inactivo',
+        ]);
+
+        $court = Court::create($request->all());
+        return response()->json($court, 201);
     }
 
     /**
