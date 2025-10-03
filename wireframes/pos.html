@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto de Venta - Sistema de Reservas</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .product-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .product-item:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-4">Punto de Venta - Consumo en Reserva</h1>
+
+        <div class="grid grid-cols-3 gap-4">
+            <!-- Panel de Productos -->
+            <div class="col-span-2">
+                <h2 class="text-lg font-semibold mb-2">Productos Disponibles</h2>
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Coca Cola', 3.50)">
+                        <div class="font-semibold">Coca Cola</div>
+                        <div class="text-gray-600">$3.50</div>
+                    </div>
+                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Pepsi', 3.00)">
+                        <div class="font-semibold">Pepsi</div>
+                        <div class="text-gray-600">$3.00</div>
+                    </div>
+                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Agua Mineral', 2.00)">
+                        <div class="font-semibold">Agua Mineral</div>
+                        <div class="text-gray-600">$2.00</div>
+                    </div>
+                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Papas Fritas', 4.50)">
+                        <div class="font-semibold">Papas Fritas</div>
+                        <div class="text-gray-600">$4.50</div>
+                    </div>
+                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Hamburguesa', 8.00)">
+                        <div class="font-semibold">Hamburguesa</div>
+                        <div class="text-gray-600">$8.00</div>
+                    </div>
+                    <div class="product-item bg-white p-4 rounded shadow" onclick="addToOrder('Pelota de Voleibol', 15.00)">
+                        <div class="font-semibold">Pelota de Voleibol</div>
+                        <div class="text-gray-600">$15.00</div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <input type="text" id="search-product" placeholder="Buscar producto..." class="border w-full p-2 rounded">
+                </div>
+            </div>
+
+            <!-- Panel de Orden -->
+            <div>
+                <h2 class="text-lg font-semibold mb-2">Orden Actual</h2>
+                <div class="bg-white p-4 rounded shadow mb-4">
+                    <div class="mb-2">
+                        <strong>Reserva ID:</strong> #12345
+                    </div>
+                    <div class="mb-2">
+                        <strong>Cliente:</strong> Juan Pérez
+                    </div>
+                    <div class="mb-2">
+                        <strong>Cancha:</strong> Cancha 1
+                    </div>
+                    <div class="mb-2">
+                        <strong>Fecha/Hora:</strong> 2025-10-03 14:00
+                    </div>
+                </div>
+
+                <div id="order-items" class="bg-white p-4 rounded shadow mb-4">
+                    <!-- Items se agregarán aquí dinámicamente -->
+                </div>
+
+                <div class="bg-white p-4 rounded shadow">
+                    <div class="flex justify-between mb-2">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">$0.00</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span>IVA (19%):</span>
+                        <span id="iva">$0.00</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-lg">
+                        <span>Total:</span>
+                        <span id="total">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex gap-2">
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded flex-1" onclick="chargeOrder()">Cobrar</button>
+                    <button class="bg-gray-500 text-white px-4 py-2 rounded flex-1" onclick="clearOrder()">Limpiar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Pago -->
+    <div id="payment-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="bg-white p-6 rounded-lg w-96">
+                <h2 class="text-xl font-bold mb-4">Procesar Pago</h2>
+                <div class="mb-4">
+                    <strong>Total a pagar: <span id="payment-total">$0.00</span></strong>
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2">Método de Pago:</label>
+                    <select class="border w-full p-2 rounded">
+                        <option>Efectivo</option>
+                        <option>Tarjeta de Crédito</option>
+                        <option>Transferencia</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2">Monto Recibido:</label>
+                    <input type="number" id="amount-received" class="border w-full p-2 rounded" placeholder="0.00">
+                </div>
+                <div class="mb-4">
+                    <strong>Cambio: <span id="change">$0.00</span></strong>
+                </div>
+                <div class="flex justify-end">
+                    <button class="bg-gray-500 text-white px-4 py-2 rounded mr-2" onclick="closePaymentModal()">Cancelar</button>
+                    <button class="bg-green-500 text-white px-4 py-2 rounded" onclick="processPayment()">Confirmar Pago</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let orderItems = [];
+        let subtotal = 0;
+
+        function addToOrder(productName, price) {
+            const existingItem = orderItems.find(item => item.name === productName);
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                orderItems.push({ name: productName, price: price, quantity: 1 });
+            }
+            updateOrderDisplay();
+        }
+
+        function updateOrderDisplay() {
+            const orderItemsDiv = document.getElementById('order-items');
+            orderItemsDiv.innerHTML = '';
+
+            subtotal = 0;
+            orderItems.forEach((item, index) => {
+                const itemTotal = item.price * item.quantity;
+                subtotal += itemTotal;
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex justify-between items-center mb-2';
+                itemDiv.innerHTML = `
+                    <span>${item.name} x${item.quantity}</span>
+                    <span>$${itemTotal.toFixed(2)}</span>
+                    <button onclick="removeItem(${index})" class="text-red-500 ml-2">×</button>
+                `;
+                orderItemsDiv.appendChild(itemDiv);
+            });
+
+            const iva = subtotal * 0.19;
+            const total = subtotal + iva;
+
+            document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('iva').textContent = `$${iva.toFixed(2)}`;
+            document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+        }
+
+        function removeItem(index) {
+            orderItems.splice(index, 1);
+            updateOrderDisplay();
+        }
+
+        function clearOrder() {
+            orderItems = [];
+            updateOrderDisplay();
+        }
+
+        function chargeOrder() {
+            if (orderItems.length === 0) {
+                alert('No hay items en la orden');
+                return;
+            }
+
+            document.getElementById('payment-total').textContent = document.getElementById('total').textContent;
+            document.getElementById('payment-modal').classList.remove('hidden');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payment-modal').classList.add('hidden');
+        }
+
+        function processPayment() {
+            const total = parseFloat(document.getElementById('payment-total').textContent.replace('$', ''));
+            const received = parseFloat(document.getElementById('amount-received').value) || 0;
+            const change = received - total;
+
+            if (change < 0) {
+                alert('Monto insuficiente');
+                return;
+            }
+
+            document.getElementById('change').textContent = `$${change.toFixed(2)}`;
+            alert('Pago procesado exitosamente');
+            clearOrder();
+            closePaymentModal();
+        }
+
+        // Búsqueda de productos
+        document.getElementById('search-product').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const products = document.querySelectorAll('.product-item');
+            products.forEach(product => {
+                const productName = product.querySelector('.font-semibold').textContent.toLowerCase();
+                if (productName.includes(searchTerm)) {
+                    product.style.display = 'block';
+                } else {
+                    product.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
