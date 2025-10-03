@@ -15,4 +15,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/availability', [\App\Http\Controllers\CourtController::class, 'availability']);
     Route::apiResource('/api/reservations', \App\Http\Controllers\ReservationController::class);
     Route::apiResource('/api/products', \App\Http\Controllers\ProductController::class);
+    Route::apiResource('/api/orders', \App\Http\Controllers\OrderController::class)->except(['update', 'destroy']);
+    Route::post('/api/orders/{order}/items', [\App\Http\Controllers\OrderController::class, 'addItem']);
+    Route::delete('/api/orders/{order}/items/{item}', [\App\Http\Controllers\OrderController::class, 'removeItem']);
+    Route::patch('/api/orders/{order}/close', [\App\Http\Controllers\OrderController::class, 'close']);
 });
