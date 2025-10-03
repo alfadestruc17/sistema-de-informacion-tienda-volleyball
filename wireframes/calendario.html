@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Semanal - Reservas de Canchas</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .slot {
+            height: 60px;
+            border: 1px solid #e5e7eb;
+        }
+        .available { background-color: #d1fae5; }
+        .occupied { background-color: #fee2e2; }
+        .reserved { background-color: #fef3c7; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-4">Calendario Semanal de Reservas</h1>
+
+        <div class="mb-4 flex justify-between items-center">
+            <div>
+                <label for="court-select" class="mr-2">Seleccionar Cancha:</label>
+                <select id="court-select" class="border rounded p-1">
+                    <option>Cancha 1</option>
+                    <option>Cancha 2</option>
+                </select>
+            </div>
+            <div>
+                <button class="bg-blue-500 text-white px-4 py-2 rounded mr-2">< Semana Anterior</button>
+                <span class="font-semibold">Semana del 1 al 7 de Octubre 2025</span>
+                <button class="bg-blue-500 text-white px-4 py-2 rounded ml-2">Semana Siguiente ></button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-8 gap-1">
+            <div class="font-bold p-2">Hora</div>
+            <div class="font-bold p-2">Lunes</div>
+            <div class="font-bold p-2">Martes</div>
+            <div class="font-bold p-2">Miércoles</div>
+            <div class="font-bold p-2">Jueves</div>
+            <div class="font-bold p-2">Viernes</div>
+            <div class="font-bold p-2">Sábado</div>
+            <div class="font-bold p-2">Domingo</div>
+
+            <div class="p-2">08:00</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot occupied">Ocupado - Juan Pérez</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot reserved">Reservado - María García</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot occupied">Ocupado - Carlos López</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+
+            <div class="p-2">09:00</div>
+            <div class="slot occupied">Ocupado - Ana Rodríguez</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot occupied">Ocupado - Pedro Sánchez</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot reserved">Reservado - Laura Martínez</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot occupied">Ocupado - Diego Fernández</div>
+
+            <!-- Más filas para otras horas -->
+            <div class="p-2">10:00</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+            <div class="slot available" onclick="selectSlot(this)">Libre</div>
+        </div>
+
+        <div class="mt-4">
+            <button class="bg-green-500 text-white px-4 py-2 rounded" onclick="openReservationModal()">Reservar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Reserva (simulado) -->
+    <div id="reservation-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="bg-white p-6 rounded-lg w-96">
+                <h2 class="text-xl font-bold mb-4">Nueva Reserva</h2>
+                <form>
+                    <div class="mb-4">
+                        <label class="block">Fecha:</label>
+                        <input type="date" class="border w-full p-2">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block">Hora Inicio:</label>
+                        <input type="time" class="border w-full p-2">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block">Duración (horas):</label>
+                        <input type="number" class="border w-full p-2" value="1">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block">Cliente:</label>
+                        <input type="text" class="border w-full p-2" placeholder="Nombre del cliente">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2" onclick="closeReservationModal()">Cancelar</button>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Confirmar Reserva</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function selectSlot(element) {
+            if (element.classList.contains('available')) {
+                document.querySelectorAll('.slot').forEach(slot => slot.classList.remove('selected'));
+                element.classList.add('selected');
+            }
+        }
+
+        function openReservationModal() {
+            document.getElementById('reservation-modal').classList.remove('hidden');
+        }
+
+        function closeReservationModal() {
+            document.getElementById('reservation-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
