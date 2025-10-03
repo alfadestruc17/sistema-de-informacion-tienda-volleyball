@@ -23,8 +23,7 @@
             <div>
                 <label for="court-select" class="mr-2">Seleccionar Cancha:</label>
                 <select id="court-select" class="border rounded p-1">
-                    <option>Cancha 1</option>
-                    <option>Cancha 2</option>
+                    <option value="">Todas las canchas</option>
                 </select>
             </div>
             <div>
@@ -78,27 +77,29 @@
         </div>
     </div>
 
-    <!-- Modal de Reserva (simulado) -->
+    <!-- Modal de Reserva -->
     <div id="reservation-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
         <div class="flex items-center justify-center min-h-screen">
             <div class="bg-white p-6 rounded-lg w-96">
                 <h2 class="text-xl font-bold mb-4">Nueva Reserva</h2>
-                <form>
+                <form id="reservation-form">
+                    <div class="mb-4">
+                        <label class="block">Cancha:</label>
+                        <select id="court-select-modal" class="border w-full p-2" required>
+                            <option value="">Seleccionar cancha</option>
+                        </select>
+                    </div>
                     <div class="mb-4">
                         <label class="block">Fecha:</label>
-                        <input type="date" class="border w-full p-2">
+                        <input type="date" id="reservation-date" class="border w-full p-2" required>
                     </div>
                     <div class="mb-4">
                         <label class="block">Hora Inicio:</label>
-                        <input type="time" class="border w-full p-2">
+                        <input type="time" id="reservation-time" class="border w-full p-2" required>
                     </div>
                     <div class="mb-4">
                         <label class="block">Duración (horas):</label>
-                        <input type="number" class="border w-full p-2" value="1">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block">Cliente:</label>
-                        <input type="text" class="border w-full p-2" placeholder="Nombre del cliente">
+                        <input type="number" id="reservation-duration" class="border w-full p-2" value="1" min="1" max="8" required>
                     </div>
                     <div class="flex justify-end">
                         <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2" onclick="closeReservationModal()">Cancelar</button>
@@ -110,6 +111,97 @@
     </div>
 
     <script>
+        let currentWeekStart = new Date();
+        currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1); // Lunes de esta semana
+        let selectedCourtId = null;
+        let courts = [];
+
+        // Cargar canchas al inicio
+        async function loadCourts() {
+            try {
+                const response = await fetch('/api/courts');
+                if (response.ok) {
+                    courts = await response.json();
+                    updateCourtSelect();
+                }
+            } catch (error) {
+                console.error('Error loading courts:', error);
+            }
+        }
+
+        function updateCourtSelect() {
+            const select = document.getElementById('court-select');
+            select.innerHTML = '<option value="">Todas las canchas</option>';
+            courts.forEach(court => {
+                select.innerHTML += `<option value="${court.id}">${court.nombre}</option>`;
+            });
+        }
+
+        // Cargar disponibilidad
+        async function loadAvailability() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+
+            const dateFrom = currentWeekStart.toISOString().split('T')[0];
+            const dateTo = weekEnd.toISOString().split('T')[0];
+
+            try {
+                const response = await fetch(`/api/availability?date_from=${dateFrom}&date_to=${dateTo}&court_id=${selectedCourtId || ''}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateCalendar(data.availability);
+                }
+            } catch (error) {
+                console.error('Error loading availability:', error);
+            }
+        }
+
+        function updateCalendar(availability) {
+            // Limpiar calendario
+            document.querySelectorAll('.slot').forEach(slot => {
+                slot.className = 'slot available';
+                slot.textContent = 'Libre';
+                slot.onclick = () => selectSlot(slot);
+            });
+
+            // Actualizar con datos reales
+            availability.forEach(day => {
+                day.occupied_slots.forEach(slot => {
+                    const slotElement = findSlotElement(day.date, slot.start_time);
+                    if (slotElement) {
+                        slotElement.className = 'slot occupied';
+                        slotElement.textContent = `Ocupado - ${slot.reservation.user.nombre}`;
+                        slotElement.onclick = null;
+                    }
+                });
+            });
+
+            updateWeekDisplay();
+        }
+
+        function findSlotElement(date, time) {
+            const dayIndex = new Date(date).getDay();
+            const timeIndex = parseInt(time.split(':')[0]) - 8; // 8:00 = 0, 9:00 = 1, etc.
+
+            if (dayIndex >= 1 && dayIndex <= 7 && timeIndex >= 0 && timeIndex < 14) {
+                const slots = document.querySelectorAll('.slot');
+                return slots[(timeIndex * 7) + (dayIndex - 1)];
+            }
+            return null;
+        }
+
+        function updateWeekDisplay() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            const weekText = `Semana del ${currentWeekStart.getDate()} al ${weekEnd.getDate()} de ${getMonthName(currentWeekStart.getMonth())} ${currentWeekStart.getFullYear()}`;
+            document.querySelector('.font-semibold').textContent = weekText;
+        }
+
+        function getMonthName(month) {
+            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            return months[month];
+        }
+
         function selectSlot(element) {
             if (element.classList.contains('available')) {
                 document.querySelectorAll('.slot').forEach(slot => slot.classList.remove('selected'));
@@ -118,12 +210,78 @@
         }
 
         function openReservationModal() {
+            // Llenar el select de canchas
+            const courtSelect = document.getElementById('court-select-modal');
+            courtSelect.innerHTML = '<option value="">Seleccionar cancha</option>';
+            courts.forEach(court => {
+                courtSelect.innerHTML += `<option value="${court.id}">${court.nombre}</option>`;
+            });
+
             document.getElementById('reservation-modal').classList.remove('hidden');
         }
 
         function closeReservationModal() {
             document.getElementById('reservation-modal').classList.add('hidden');
+            document.getElementById('reservation-form').reset();
         }
+
+        // Manejar envío del formulario de reserva
+        document.getElementById('reservation-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const reservationData = {
+                court_id: formData.get('court_id'),
+                fecha: formData.get('fecha'),
+                hora_inicio: formData.get('hora_inicio'),
+                duracion_horas: parseInt(formData.get('duracion_horas'))
+            };
+
+            try {
+                const response = await fetch('/api/reservations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(reservationData)
+                });
+
+                if (response.ok) {
+                    alert('Reserva creada exitosamente');
+                    closeReservationModal();
+                    loadAvailability(); // Recargar calendario
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.message || 'No se pudo crear la reserva'));
+                }
+            } catch (error) {
+                console.error('Error creating reservation:', error);
+                alert('Error de conexión');
+            }
+        });
+
+        // Event listeners
+        document.getElementById('court-select').addEventListener('change', function(e) {
+            selectedCourtId = e.target.value;
+            loadAvailability();
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCourts();
+            loadAvailability();
+        });
+
+        // Navegación de semanas
+        document.querySelector('button:first-of-type').addEventListener('click', function() {
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            loadAvailability();
+        });
+
+        document.querySelector('button:last-of-type').addEventListener('click', function() {
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+            loadAvailability();
+        });
     </script>
 </body>
 </html>
