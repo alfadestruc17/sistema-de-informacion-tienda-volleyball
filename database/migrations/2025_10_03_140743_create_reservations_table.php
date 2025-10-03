@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('reservations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users');
-            $table->foreignId('court_id')->constrained('courts');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('court_id');
             $table->date('fecha');
             $table->time('hora_inicio');
             $table->integer('duracion_horas');

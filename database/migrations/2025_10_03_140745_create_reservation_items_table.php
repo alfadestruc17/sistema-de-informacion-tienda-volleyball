@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('reservation_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('reservation_id')->constrained('reservations')->onDelete('cascade');
+            $table->unsignedBigInteger('reservation_id');
             $table->string('descripcion');
             $table->integer('cantidad');
             $table->decimal('precio_unitario', 8, 2);
