@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Court;
+use App\Models\Reservation;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class CourtController extends Controller
 {
@@ -69,5 +71,85 @@ class CourtController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function availability(Request $request)
+    {
+        $request->validate([
+            'court_id' => 'nullable|exists:courts,id',
+            'date_from' => 'required|date',
+            'date_to' => 'required|date|after_or_equal:date_from',
+        ]);
+
+        $courtId = $request->court_id;
+        $dateFrom = Carbon::parse($request->date_from);
+        $dateTo = Carbon::parse($request->date_to);
+
+        // Obtener todas las reservas en el rango de fechas
+        $query = Reservation::whereBetween('fecha', [$dateFrom, $dateTo])
+            ->where('estado', '!=', 'cancelada');
+
+        if ($courtId) {
+            $query->where('court_id', $courtId);
+        }
+
+        $reservations = $query->with(['court', 'user'])->get();
+
+        $availability = [];
+
+        // Generar disponibilidad por día
+        for ($date = $dateFrom->copy(); $date->lte($dateTo); $date->addDay()) {
+            $dayReservations = $reservations->where('fecha', $date->toDateString());
+
+            $occupiedSlots = [];
+            $availableSlots = [];
+
+            // Asumir horario de 8:00 a 22:00 con franjas de 1 hora
+            for ($hour = 8; $hour < 22; $hour++) {
+                $slotStart = Carbon::createFromTime($hour, 0);
+                $slotEnd = Carbon::createFromTime($hour + 1, 0);
+
+                $isOccupied = false;
+                foreach ($dayReservations as $reservation) {
+                    $resStart = Carbon::parse($reservation->hora_inicio);
+                    $resEnd = $resStart->copy()->addHours($reservation->duracion_horas);
+
+                    // Verificar solapamiento
+                    if ($slotStart < $resEnd && $slotEnd > $resStart) {
+                        $isOccupied = true;
+                        break;
+                    }
+                }
+
+                if ($isOccupied) {
+                    $occupiedSlots[] = [
+                        'start_time' => $slotStart->format('H:i'),
+                        'end_time' => $slotEnd->format('H:i'),
+                        'reservation' => $dayReservations->first(function($res) use ($slotStart, $slotEnd) {
+                            $resStart = Carbon::parse($res->hora_inicio);
+                            $resEnd = $resStart->copy()->addHours($res->duracion_horas);
+                            return $slotStart < $resEnd && $slotEnd > $resStart;
+                        })
+                    ];
+                } else {
+                    $availableSlots[] = [
+                        'start_time' => $slotStart->format('H:i'),
+                        'end_time' => $slotEnd->format('H:i'),
+                    ];
+                }
+            }
+
+            $availability[] = [
+                'date' => $date->toDateString(),
+                'court_id' => $courtId,
+                'available_slots' => $availableSlots,
+                'occupied_slots' => $occupiedSlots,
+            ];
+        }
+
+        return response()->json([
+            'availability' => $availability,
+            'courts' => $courtId ? Court::find($courtId) : Court::all(),
+        ]);
     }
 }

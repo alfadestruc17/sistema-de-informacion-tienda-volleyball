@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Reservation extends Model
 {
@@ -39,8 +40,28 @@ class Reservation extends Model
         return $this->hasMany(ReservationItem::class);
     }
 
-    public function orders()
+    // public function orders()
+    // {
+    //     return $this->hasMany(Order::class);
+    // }
+
+    public static function isSlotAvailable($courtId, $fecha, $horaInicio, $duracionHoras)
     {
-        return $this->hasMany(Order::class);
+        $startTime = Carbon::parse($horaInicio);
+        $endTime = $startTime->copy()->addHours($duracionHoras);
+
+        $overlappingReservations = self::where('court_id', $courtId)
+            ->where('fecha', $fecha)
+            ->where('estado', '!=', 'cancelada')
+            ->get()
+            ->filter(function ($reservation) use ($startTime, $endTime) {
+                $resStart = Carbon::parse($reservation->hora_inicio);
+                $resEnd = $resStart->copy()->addHours($reservation->duracion_horas);
+
+                // Verificar solapamiento
+                return $startTime < $resEnd && $endTime > $resStart;
+            });
+
+        return $overlappingReservations->isEmpty();
     }
 }
