@@ -16,18 +16,26 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users',
             'password' => 'required|string|min:8',
             'telefono' => 'nullable|string',
-            'rol_id' => 'required|exists:roles,id',
         ]);
+
+        // Asignar rol de cliente por defecto si no se especifica
+        $rolId = $request->rol_id ?? 3; // 3 = cliente
 
         $user = User::create([
             'nombre' => $request->nombre,
             'email' => $request->email,
             'password_hash' => Hash::make($request->password),
             'telefono' => $request->telefono,
-            'rol_id' => $request->rol_id,
+            'rol_id' => $rolId,
         ]);
 
-        return response()->json(['user' => $user, 'message' => 'Usuario registrado'], 201);
+        $token = $user->createToken('API Token')->plainTextToken;
+
+        return response()->json([
+            'user' => $user->load('role'),
+            'token' => $token,
+            'message' => 'Usuario registrado'
+        ], 201);
     }
 
     public function login(Request $request)
@@ -38,8 +46,14 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-            $request->session()->regenerate();
-            return response()->json(['user' => Auth::user(), 'message' => 'Login exitoso'], 200);
+            $user = Auth::user();
+            $token = $user->createToken('API Token')->plainTextToken;
+
+            return response()->json([
+                'user' => $user->load('role'),
+                'token' => $token,
+                'message' => 'Login exitoso'
+            ], 200);
         }
 
         return response()->json(['message' => 'Credenciales inválidas'], 401);
