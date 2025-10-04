@@ -24,5 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/top-products', [\App\Http\Controllers\DashboardController::class, 'topProducts']);
         Route::get('/weekly-revenue', [\App\Http\Controllers\DashboardController::class, 'weeklyRevenue']);
         Route::get('/stats', [\App\Http\Controllers\DashboardController::class, 'stats']);
+        Route::get('/export/sales', [\App\Http\Controllers\DashboardController::class, 'exportSales']);
+        Route::get('/export/reservations', [\App\Http\Controllers\DashboardController::class, 'exportReservations']);
     });
 });

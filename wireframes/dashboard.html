@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Administrador - Sistema de Reservas</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .kpi-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold">Dashboard Administrador</h1>
+            <div class="flex gap-2">
+                <button onclick="exportSales()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    📊 Exportar Ventas
+                </button>
+                <button onclick="exportReservations()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    📅 Exportar Reservas
+                </button>
+            </div>
+        </div>
+
+        <!-- KPIs Principales -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="kpi-card p-6 rounded-lg shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white text-sm opacity-80">Ventas del Día</p>
+                        <p class="text-2xl font-bold" id="daily-sales">$0.00</p>
+                    </div>
+                    <div class="text-4xl">💰</div>
+                </div>
+            </div>
+
+            <div class="kpi-card p-6 rounded-lg shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white text-sm opacity-80">Reservas Activas</p>
+                        <p class="text-2xl font-bold" id="active-reservations">0</p>
+                    </div>
+                    <div class="text-4xl">📅</div>
+                </div>
+            </div>
+
+            <div class="kpi-card p-6 rounded-lg shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white text-sm opacity-80">Ingresos Semanales</p>
+                        <p class="text-2xl font-bold" id="weekly-revenue">$0.00</p>
+                    </div>
+                    <div class="text-4xl">📈</div>
+                </div>
+            </div>
+
+            <div class="kpi-card p-6 rounded-lg shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white text-sm opacity-80">Reservas Semanales</p>
+                        <p class="text-2xl font-bold" id="weekly-reservations">0</p>
+                    </div>
+                    <div class="text-4xl">🎾</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficas -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Ingresos Semanales -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-lg font-semibold mb-4">Ingresos Semanales</h3>
+                <div class="chart-container">
+                    <canvas id="weeklyRevenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Productos Más Vendidos -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-lg font-semibold mb-4">Productos Más Vendidos</h3>
+                <div class="chart-container">
+                    <canvas id="topProductsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendario Semanal -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Calendario Semanal de Reservas</h3>
+                <div class="flex gap-2">
+                    <button onclick="previousWeek()" class="bg-gray-500 text-white px-3 py-1 rounded text-sm">← Semana Anterior</button>
+                    <span class="font-semibold" id="week-range">Cargando...</span>
+                    <button onclick="nextWeek()" class="bg-gray-500 text-white px-3 py-1 rounded text-sm">Semana Siguiente →</button>
+                </div>
+            </div>
+
+            <div id="calendar-container" class="overflow-x-auto">
+                <!-- Calendario se cargará dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Estadísticas Generales -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+                <h4 class="text-lg font-semibold mb-2">Ingresos del Mes</h4>
+                <p class="text-3xl font-bold text-green-600" id="monthly-revenue">$0.00</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+                <h4 class="text-lg font-semibold mb-2">Total Órdenes</h4>
+                <p class="text-3xl font-bold text-blue-600" id="total-orders">0</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+                <h4 class="text-lg font-semibold mb-2">Valor Promedio Orden</h4>
+                <p class="text-3xl font-bold text-purple-600" id="avg-order-value">$0.00</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        let authToken = localStorage.getItem('auth_token');
+        let currentWeekStart = new Date();
+
+        // Obtener token si no existe
+        if (!authToken) {
+            authToken = prompt('Ingresa tu token de autenticación:');
+            if (authToken) {
+                localStorage.setItem('auth_token', authToken);
+            }
+        }
+
+        // Headers para requests
+        function getAuthHeaders() {
+            return {
+                'Authorization': `Bearer ${authToken}`,
+                'Accept': 'application/json'
+            };
+        }
+
+        // Cargar todos los datos del dashboard
+        async function loadDashboard() {
+            try {
+                await Promise.all([
+                    loadKPIs(),
+                    loadWeeklyRevenue(),
+                    loadTopProducts(),
+                    loadWeeklyCalendar(),
+                    loadStats()
+                ]);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                alert('Error al cargar el dashboard. Verifica tu token.');
+            }
+        }
+
+        // Cargar KPIs
+        async function loadKPIs() {
+            const response = await fetch(`${API_BASE}/dashboard/kpis`, { headers: getAuthHeaders() });
+            const data = await response.json();
+
+            document.getElementById('daily-sales').textContent = `$${parseFloat(data.daily_sales).toFixed(2)}`;
+            document.getElementById('active-reservations').textContent = data.active_reservations_today;
+            document.getElementById('weekly-revenue').textContent = `$${parseFloat(data.weekly_revenue).toFixed(2)}`;
+            document.getElementById('weekly-reservations').textContent = data.weekly_reservations;
+        }
+
+        // Cargar ingresos semanales para gráfica
+        async function loadWeeklyRevenue() {
+            const response = await fetch(`${API_BASE}/dashboard/weekly-revenue`, { headers: getAuthHeaders() });
+            const data = await response.json();
+
+            const ctx = document.getElementById('weeklyRevenueChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.day_name),
+                    datasets: [{
+                        label: 'Ingresos Diarios',
+                        data: data.map(d => d.revenue),
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Cargar productos más vendidos
+        async function loadTopProducts() {
+            const response = await fetch(`${API_BASE}/dashboard/top-products`, { headers: getAuthHeaders() });
+            const data = await response.json();
+
+            const ctx = document.getElementById('topProductsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(p => p.nombre),
+                    datasets: [{
+                        label: 'Unidades Vendidas',
+                        data: data.map(p => p.total_vendido),
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Cargar calendario semanal
+        async function loadWeeklyCalendar() {
+            const weekStart = currentWeekStart.toISOString().split('T')[0];
+            const response = await fetch(`${API_BASE}/dashboard/weekly-calendar?week_start=${weekStart}`, { headers: getAuthHeaders() });
+            const data = await response.json();
+
+            document.getElementById('week-range').textContent = `${data.week_start} - ${data.week_end}`;
+
+            const container = document.getElementById('calendar-container');
+            container.innerHTML = generateCalendarHTML(data);
+        }
+
+        // Generar HTML del calendario
+        function generateCalendarHTML(data) {
+            const days = ['Hora', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+            const hours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+
+            let html = '<table class="w-full border-collapse border border-gray-300">';
+
+            // Header con días
+            html += '<thead><tr>';
+            days.forEach(day => {
+                html += `<th class="border border-gray-300 p-2 bg-gray-100 font-semibold">${day}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            // Filas por hora
+            hours.forEach(hour => {
+                html += '<tr>';
+                html += `<td class="border border-gray-300 p-2 bg-gray-50 font-medium">${hour}</td>`;
+
+                // Celdas por día
+                for (let i = 1; i <= 7; i++) {
+                    const dayReservations = getReservationsForDayAndHour(data.courts, i, hour);
+                    const cellClass = dayReservations.length > 0 ? 'bg-red-100' : 'bg-green-50';
+
+                    html += `<td class="border border-gray-300 p-2 ${cellClass}">`;
+                    if (dayReservations.length > 0) {
+                        dayReservations.forEach(reservation => {
+                            html += `<div class="text-xs mb-1 p-1 bg-red-200 rounded">
+                                ${reservation.cliente}<br>
+                                ${reservation.duracion_horas}h - $${reservation.total}
+                            </div>`;
+                        });
+                    }
+                    html += '</td>';
+                }
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            return html;
+        }
+
+        // Obtener reservas para un día y hora específicos
+        function getReservationsForDayAndHour(courts, dayIndex, hour) {
+            const reservations = [];
+            courts.forEach(court => {
+                court.reservations.forEach(reservation => {
+                    const resDate = new Date(reservation.fecha);
+                    const resDay = resDate.getDay() === 0 ? 7 : resDate.getDay(); // Ajustar Domingo
+                    const resHour = reservation.hora_inicio.substring(0, 5);
+
+                    if (resDay === dayIndex && resHour === hour) {
+                        reservations.push(reservation);
+                    }
+                });
+            });
+            return reservations;
+        }
+
+        // Cargar estadísticas generales
+        async function loadStats() {
+            const response = await fetch(`${API_BASE}/dashboard/stats`, { headers: getAuthHeaders() });
+            const data = await response.json();
+
+            document.getElementById('monthly-revenue').textContent = `$${parseFloat(data.total_revenue).toFixed(2)}`;
+            document.getElementById('total-orders').textContent = data.total_orders;
+            document.getElementById('avg-order-value').textContent = `$${parseFloat(data.average_order_value).toFixed(2)}`;
+        }
+
+        // Navegación de semanas
+        function previousWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            loadWeeklyCalendar();
+        }
+
+        function nextWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+            loadWeeklyCalendar();
+        }
+
+        // Exportar reportes
+        function exportSales() {
+            const dateFrom = prompt('Fecha desde (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+            const dateTo = prompt('Fecha hasta (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+
+            let url = `${API_BASE}/dashboard/export/sales`;
+            if (dateFrom && dateTo) {
+                url += `?date_from=${dateFrom}&date_to=${dateTo}`;
+            }
+
+            window.open(url, '_blank');
+        }
+
+        function exportReservations() {
+            const dateFrom = prompt('Fecha desde (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+            const dateTo = prompt('Fecha hasta (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+
+            let url = `${API_BASE}/dashboard/export/reservations`;
+            if (dateFrom && dateTo) {
+                url += `?date_from=${dateFrom}&date_to=${dateTo}`;
+            }
+
+            window.open(url, '_blank');
+        }
+
+        // Inicializar dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            if (authToken) {
+                loadDashboard();
+            } else {
+                alert('Token de autenticación requerido');
+            }
+        });
+    </script>
+</body>
+</html>

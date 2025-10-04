@@ -7,9 +7,12 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Reservation;
 use App\Models\Court;
+use App\Exports\SalesReportExport;
+use App\Exports\ReservationsReportExport;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DashboardController extends Controller
 {
@@ -187,5 +190,31 @@ class DashboardController extends Controller
             'total_reservations' => $totalReservations,
             'average_order_value' => round($avgOrderValue, 2)
         ]);
+    }
+
+    /**
+     * Exportar reporte de ventas
+     */
+    public function exportSales(Request $request)
+    {
+        $dateFrom = $request->get('date_from') ? Carbon::parse($request->get('date_from')) : null;
+        $dateTo = $request->get('date_to') ? Carbon::parse($request->get('date_to')) : null;
+
+        $fileName = 'reporte-ventas-' . ($dateFrom ? $dateFrom->format('Y-m-d') : 'inicio') . '-a-' . ($dateTo ? $dateTo->format('Y-m-d') : 'fin') . '.xlsx';
+
+        return Excel::download(new SalesReportExport($dateFrom, $dateTo), $fileName);
+    }
+
+    /**
+     * Exportar reporte de reservas
+     */
+    public function exportReservations(Request $request)
+    {
+        $dateFrom = $request->get('date_from') ? Carbon::parse($request->get('date_from')) : null;
+        $dateTo = $request->get('date_to') ? Carbon::parse($request->get('date_to')) : null;
+
+        $fileName = 'reporte-reservas-' . ($dateFrom ? $dateFrom->format('Y-m-d') : 'inicio') . '-a-' . ($dateTo ? $dateTo->format('Y-m-d') : 'fin') . '.xlsx';
+
+        return Excel::download(new ReservationsReportExport($dateFrom, $dateTo), $fileName);
     }
 }
