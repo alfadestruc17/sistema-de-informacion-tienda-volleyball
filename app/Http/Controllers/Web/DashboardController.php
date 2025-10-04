@@ -117,27 +117,25 @@ class DashboardController extends Controller
                                      ->with('user')
                                      ->get();
 
-            $courtData = [
+            $calendarData[] = [
                 'court' => $court,
                 'reservations' => $reservations->map(function ($reservation) {
                     return [
                         'id' => $reservation->id,
-                        'fecha' => $reservation->fecha,
+                        'fecha' => $reservation->fecha->format('Y-m-d'),
                         'hora_inicio' => $reservation->hora_inicio,
                         'duracion_horas' => $reservation->duracion_horas,
                         'estado' => $reservation->estado,
                         'cliente' => $reservation->user->nombre,
                         'total' => $reservation->total_estimado
                     ];
-                })
+                })->toArray()
             ];
-
-            $calendarData[] = $courtData;
         }
 
         return [
-            'week_start' => $weekStart->toDateString(),
-            'week_end' => $weekEnd->toDateString(),
+            'week_start' => $weekStart->format('Y-m-d'),
+            'week_end' => $weekEnd->format('Y-m-d'),
             'courts' => $calendarData
         ];
     }

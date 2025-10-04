@@ -16,7 +16,7 @@ class PosController extends Controller
     public function index()
     {
         $products = Product::where('stock', '>', 0)->get();
-        $users = User::where('role_id', '!=', 1)->get(); // Excluir admins
+        $users = User::where('rol_id', '!=', 1)->get(); // Excluir admins
 
         return view('admin.pos.index', compact('products', 'users'));
     }

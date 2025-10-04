@@ -134,7 +134,11 @@
             </div>
 
             <div id="calendar-container" class="overflow-x-auto">
-                {{ generateCalendarHTML($weeklyCalendar['courts']) }}
+                @php
+                    // Debug temporal
+                    // dd($weeklyCalendar);
+                @endphp
+                {!! generateCalendarHTML($weeklyCalendar['courts']) !!}
             </div>
         </div>
 
@@ -271,14 +275,31 @@
 
         function getReservationsForDayAndHour($courts, $dayIndex, $hour) {
             $reservations = [];
-            foreach ($courts as $court) {
-                foreach ($court['reservations'] as $reservation) {
-                    $resDate = new DateTime($reservation['fecha']);
-                    $resDay = $resDate->format('N'); // 1 = Lunes, 7 = Domingo
-                    $resHour = substr($reservation['hora_inicio'], 0, 5);
+            if (!is_array($courts)) {
+                return $reservations;
+            }
 
-                    if ($resDay == $dayIndex && $resHour == $hour) {
-                        $reservations[] = $reservation;
+            foreach ($courts as $court) {
+                if (!isset($court['reservations']) || !is_array($court['reservations'])) {
+                    continue;
+                }
+
+                foreach ($court['reservations'] as $reservation) {
+                    if (!is_array($reservation) || !isset($reservation['fecha']) || !isset($reservation['hora_inicio'])) {
+                        continue;
+                    }
+
+                    try {
+                        $resDate = new DateTime($reservation['fecha']);
+                        $resDay = $resDate->format('N'); // 1 = Lunes, 7 = Domingo
+                        $resHour = substr($reservation['hora_inicio'], 0, 5);
+
+                        if ($resDay == $dayIndex && $resHour == $hour) {
+                            $reservations[] = $reservation;
+                        }
+                    } catch (Exception $e) {
+                        // Skip invalid dates
+                        continue;
                     }
                 }
             }

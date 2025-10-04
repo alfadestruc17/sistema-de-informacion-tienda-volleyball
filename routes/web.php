@@ -30,7 +30,6 @@ Route::middleware('auth')->group(function () {
         return view('pos.index');
     })->name('pos.index')->middleware('role:cajero');
 
-    Route::get('/reservations', [DashboardController::class, 'index'])->name('reservations.index'); // Clientes usan el mismo dashboard
 
     // Rutas de administración (solo para admin)
     Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {

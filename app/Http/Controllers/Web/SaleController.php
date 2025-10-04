@@ -28,7 +28,7 @@ class SaleController extends Controller
     public function edit(Sale $sale)
     {
         $sale->load(['user', 'saleItems.product']);
-        $users = User::where('role_id', '!=', 1)->get(); // Excluir admins
+        $users = User::where('rol_id', '!=', 1)->get(); // Excluir admins
 
         return view('admin.sales.edit', compact('sale', 'users'));
     }

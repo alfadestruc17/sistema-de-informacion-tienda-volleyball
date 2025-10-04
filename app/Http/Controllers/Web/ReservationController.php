@@ -24,7 +24,7 @@ class ReservationController extends Controller
     public function create()
     {
         $courts = Court::all();
-        $users = User::where('role_id', '!=', 1)->get(); // Excluir admins
+        $users = User::where('rol_id', '!=', 1)->get(); // Excluir admins
 
         return view('admin.reservations.create', compact('courts', 'users'));
     }
