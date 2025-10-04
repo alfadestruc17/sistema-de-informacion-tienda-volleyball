@@ -20,7 +20,7 @@ class Reservation extends Model
 
     protected $casts = [
         'fecha' => 'date',
-        'hora_inicio' => 'datetime:H:i',
+        'hora_inicio' => 'string',
         'total_estimado' => 'decimal:2',
         'pagado_bool' => 'boolean'
     ];

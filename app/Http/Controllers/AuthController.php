@@ -46,8 +46,8 @@ class AuthController extends Controller
             } elseif ($user->role->nombre === 'cajero') {
                 return redirect()->route('pos.index');
             } else {
-                // Cliente: redirigir al calendario
-                return redirect()->route('client.calendar');
+                // Cliente: redirigir al dashboard de cliente
+                return redirect()->route('client.dashboard');
             }
         }
 

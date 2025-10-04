@@ -25,8 +25,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/admin/dashboard', [DashboardController::class, 'admin'])->name('admin.dashboard')->middleware('role:admin');
 
-    // Rutas para clientes
+    // Rutas para clientes (sin middleware restrictivo)
     Route::get('/calendar', [\App\Http\Controllers\Web\ClientController::class, 'calendar'])->name('calendar.index');
+    Route::get('/client/dashboard', [\App\Http\Controllers\Web\ClientController::class, 'dashboard'])->name('client.dashboard');
     Route::prefix('client')->name('client.')->group(function () {
         Route::get('/calendar', [\App\Http\Controllers\Web\ClientController::class, 'calendar'])->name('calendar');
         Route::get('/reservations', [\App\Http\Controllers\Web\ClientController::class, 'reservations'])->name('reservations');

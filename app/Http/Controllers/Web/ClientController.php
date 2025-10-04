@@ -16,12 +16,24 @@ class ClientController extends Controller
     {
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
-            $user = Auth::user();
-            if (!$user->role || $user->role->nombre !== 'cliente') {
-                abort(403, 'Acceso denegado - Solo para clientes');
+            // Solo aplicar restricción de cliente a métodos específicos
+            $restrictedMethods = ['reservations', 'createReservation', 'payReservation', 'cancelReservation'];
+
+            if (in_array($request->route()->getActionMethod(), $restrictedMethods)) {
+                $user = Auth::user();
+                if (!$user->role || $user->role->nombre !== 'cliente') {
+                    abort(403, 'Acceso denegado - Solo para clientes');
+                }
             }
+
             return $next($request);
         });
+    }
+
+    public function dashboard()
+    {
+        // Dashboard simple para clientes - redirige al calendario
+        return redirect()->route('calendar.index');
     }
 
     public function calendar(Request $request)
@@ -114,7 +126,7 @@ class ClientController extends Controller
         }
 
         // Solo permitir cancelar reservas que no han pasado
-        $reservationDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $reservation->fecha . ' ' . $reservation->hora_inicio);
+        $reservationDateTime = Carbon::parse($reservation->fecha . ' ' . $reservation->hora_inicio);
         if ($reservationDateTime->isPast()) {
             return back()->with('error', 'No puedes cancelar una reserva que ya ha pasado');
         }
@@ -157,7 +169,7 @@ class ClientController extends Controller
             ->get();
 
         foreach ($conflictingReservations as $reservation) {
-            $resStart = Carbon::createFromFormat('Y-m-d H:i:s', $date . ' ' . $reservation->hora_inicio);
+            $resStart = Carbon::parse($date . ' ' . $reservation->hora_inicio);
             $resEnd = $resStart->copy()->addHours($reservation->duracion_horas);
 
             // Verificar superposición
