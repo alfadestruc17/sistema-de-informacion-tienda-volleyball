@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - Volleyball Booking</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        button { margin: 5px; padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input, select { margin: 5px; padding: 8px; width: 200px; }
+        textarea { width: 100%; height: 200px; margin: 10px 0; }
+        .response { background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 3px; white-space: pre-wrap; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test API - Sistema de Reservas de Voleibol</h1>
+
+    <div class="section">
+        <h2>🔐 1. Autenticación</h2>
+        <div>
+            <h3>Registro</h3>
+            <input type="text" id="reg-nombre" placeholder="Nombre" value="Juan Pérez">
+            <input type="email" id="reg-email" placeholder="Email" value="juan@example.com">
+            <input type="password" id="reg-password" placeholder="Password" value="password123">
+            <input type="text" id="reg-telefono" placeholder="Teléfono" value="3001234567">
+            <button onclick="register()">Registrar Usuario</button>
+        </div>
+
+        <div>
+            <h3>Login</h3>
+            <input type="email" id="login-email" placeholder="Email" value="juan@example.com">
+            <input type="password" id="login-password" placeholder="Password" value="password123">
+            <button onclick="login()">Hacer Login</button>
+        </div>
+
+        <div id="auth-response" class="response"></div>
+    </div>
+
+    <div class="section">
+        <h2>🏓 2. Canchas</h2>
+        <button onclick="getCourts()">Listar Canchas</button>
+        <div id="courts-response" class="response"></div>
+    </div>
+
+    <div class="section">
+        <h2>📅 3. Disponibilidad</h2>
+        <input type="number" id="court-id" placeholder="ID Cancha" value="1">
+        <input type="date" id="date-from" value="2025-10-03">
+        <input type="date" id="date-to" value="2025-10-10">
+        <button onclick="getAvailability()">Ver Disponibilidad</button>
+        <div id="availability-response" class="response"></div>
+    </div>
+
+    <div class="section">
+        <h2>📝 4. Reservas</h2>
+        <div>
+            <h3>Crear Reserva</h3>
+            <input type="number" id="res-court-id" placeholder="ID Cancha" value="1">
+            <input type="date" id="res-date" value="2025-10-05">
+            <input type="time" id="res-time" value="14:00">
+            <input type="number" id="res-hours" placeholder="Horas" value="2">
+            <button onclick="createReservation()">Crear Reserva</button>
+        </div>
+
+        <div>
+            <h3>Listar Reservas</h3>
+            <button onclick="getReservations()">Mis Reservas</button>
+        </div>
+
+        <div id="reservations-response" class="response"></div>
+    </div>
+
+    <div class="section">
+        <h2>🛒 5. Productos</h2>
+        <button onclick="getProducts()">Listar Productos</button>
+        <div id="products-response" class="response"></div>
+    </div>
+
+    <div class="section">
+        <h2>🧾 6. Órdenes (POS)</h2>
+        <div>
+            <h3>Crear Orden</h3>
+            <input type="number" id="order-reservation-id" placeholder="ID Reserva (opcional)">
+            <button onclick="createOrder()">Crear Orden</button>
+        </div>
+
+        <div>
+            <h3>Agregar Producto a Orden</h3>
+            <input type="number" id="order-id" placeholder="ID Orden">
+            <input type="number" id="product-id" placeholder="ID Producto" value="1">
+            <input type="number" id="quantity" placeholder="Cantidad" value="2">
+            <button onclick="addItemToOrder()">Agregar Item</button>
+        </div>
+
+        <div>
+            <h3>Cerrar Orden</h3>
+            <input type="number" id="close-order-id" placeholder="ID Orden">
+            <button onclick="closeOrder()">Cerrar/Cobrar Orden</button>
+        </div>
+
+        <div id="orders-response" class="response"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000';
+        let authToken = localStorage.getItem('auth_token');
+
+        // Headers para requests autenticados
+        function getAuthHeaders() {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            };
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            return headers;
+        }
+
+        // Mostrar respuesta
+        function showResponse(elementId, data, error = false) {
+            const element = document.getElementById(elementId);
+            element.className = 'response ' + (error ? 'error' : 'success');
+            element.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+        }
+
+        // Registro
+        async function register() {
+            const data = {
+                nombre: document.getElementById('reg-nombre').value,
+                email: document.getElementById('reg-email').value,
+                password: document.getElementById('reg-password').value,
+                telefono: document.getElementById('reg-telefono').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    authToken = result.token;
+                    localStorage.setItem('auth_token', authToken);
+                    showResponse('auth-response', result);
+                } else {
+                    showResponse('auth-response', result, true);
+                }
+            } catch (error) {
+                showResponse('auth-response', 'Error: ' + error.message, true);
+            }
+        }
+
+        // Login
+        async function login() {
+            const data = {
+                email: document.getElementById('login-email').value,
+                password: document.getElementById('login-password').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    authToken = result.token;
+                    localStorage.setItem('auth_token', authToken);
+                    showResponse('auth-response', result);
+                } else {
+                    showResponse('auth-response', result, true);
+                }
+            } catch (error) {
+                showResponse('auth-response', 'Error: ' + error.message, true);
+            }
+        }
+
+        // Canchas
+        async function getCourts() {
+            try {
+                const response = await fetch(`${API_BASE}/api/courts`, {
+                    headers: getAuthHeaders()
+                });
+                const result = await response.json();
+                showResponse('courts-response', result, !response.ok);
+            } catch (error) {
+                showResponse('courts-response', 'Error: ' + error.message, true);
+            }
+        }
+
+        // Disponibilidad
+        async function getAvailability() {
+            const courtId = document.getElementById('court-id').value;
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/availability?court_id=${courtId}&date_from=${dateFrom}&date_to=${dateTo}`, {
+                    headers: getAuthHeaders()
+                });
+                const result = await response.json();
+                showResponse('availability-response', result, !response.ok);
+            } catch (error) {
+                showResponse('availability-response', 'Error: ' + error.message, true);
+            }
+        }
+
+        // Crear reserva
+        async function createReservation() {
+            const data = {
+                court_id: document.getElementById('res-court-id').value,
+                fecha: document.getElementById('res-date').value,
+                hora_inicio: document.getElementById('res-time').value,
+                duracion_horas: document.getElementById('res-hours').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/reservations`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                showResponse('reservations-response', result, !response.ok);
+            } catch (error) {
+                showResponse('reservations-response', 'Error: ' + error.message, true);
+            }
+        }
+
+        // Listar reservas
+        async function getReservations() {
+            try {
+                const response = await fetch(`${API_BASE}/api/reservations`, {
+                    headers: getAuthHeaders()
+                });
+                const result = await response.json();
+                showResponse('reservations-response', result, !response.ok);
+            } catch (error) {
+                showResponse('reservations-response', 'Error: ' + error.message, true);
+            }
+        }
+
+        // Listar productos
+        async function getProducts() {
+            try {
+                const response = await fetch(`${API_BASE}/api/products`, {
+                    headers: getAuthHeaders()
+                });
+                const result = await response.json();
+                showResponse('products-response', result, !response.ok);
+            } catch (error) {
+                showResponse('products-response', 'Error: ' + error.message, true);
+            }
+        }
+
+        // Crear orden
+        async function createOrder() {
+            const reservationId = document.getElementById('order-reservation-id').value;
+            const data = reservationId ? { reservation_id: reservationId } : {};
+
+            try {
+                const response = await fetch(`${API_BASE}/api/orders`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                showResponse('orders-response', result, !response.ok);
+            } catch (error) {
+                showResponse('orders-response', 'Error: ' + error.message, true);
+            }
+        }
+
+        // Agregar item a orden
+        async function addItemToOrder() {
+            const orderId = document.getElementById('order-id').value;
+            const data = {
+                product_id: document.getElementById('product-id').value,
+                cantidad: document.getElementById('quantity').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/orders/${orderId}/items`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                showResponse('orders-response', result, !response.ok);
+            } catch (error) {
+                showResponse('orders-response', 'Error: ' + error.message, true);
+            }
+        }
+
+        // Cerrar orden
+        async function closeOrder() {
+            const orderId = document.getElementById('close-order-id').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/orders/${orderId}/close`, {
+                    method: 'PATCH',
+                    headers: getAuthHeaders()
+                });
+                const result = await response.json();
+                showResponse('orders-response', result, !response.ok);
+            } catch (error) {
+                showResponse('orders-response', 'Error: ' + error.message, true);
+            }
+        }
+
+        // Mostrar token actual
+        if (authToken) {
+            document.getElementById('auth-response').textContent = 'Token cargado desde localStorage: ' + authToken.substring(0, 50) + '...';
+        }
+    </script>
+</body>
+</html>
