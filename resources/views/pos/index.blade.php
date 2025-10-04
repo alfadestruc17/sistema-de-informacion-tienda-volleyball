@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto de Venta - Sistema de Reservas de Voleibol</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .product-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .product-item:hover {
+            background-color: #f3f4f6;
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-gray-800">🏐 Volleyball Booking - POS</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-700">Cajero: {{ Auth::user()->nombre }}</span>
+                    <form method="POST" action="{{ route('logout') }}" class="inline">
+                        @csrf
+                        <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                            Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4">
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold">Punto de Venta</h1>
+            <p class="text-gray-600">Gestiona órdenes y consumos de reservas</p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+            <!-- Panel de Productos -->
+            <div class="col-span-2">
+                <h2 class="text-lg font-semibold mb-2">Productos Disponibles</h2>
+                <div id="products-grid" class="grid grid-cols-3 gap-2 mb-4">
+                    <!-- Productos se cargarán dinámicamente -->
+                </div>
+
+                <div class="mb-4">
+                    <input type="text" id="search-product" placeholder="Buscar producto..." class="border w-full p-2 rounded">
+                </div>
+            </div>
+
+            <!-- Panel de Orden -->
+            <div>
+                <h2 class="text-lg font-semibold mb-2">Orden Actual</h2>
+
+                <!-- Selector de Reserva -->
+                <div class="bg-white p-4 rounded shadow mb-4">
+                    <h3 class="text-sm font-semibold mb-2">Reserva (Opcional)</h3>
+                    <div class="flex gap-2">
+                        <input type="number" id="reservation-id" placeholder="ID de Reserva" class="border p-2 rounded flex-1 text-sm">
+                        <button onclick="loadReservation()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Cargar</button>
+                    </div>
+                    <div id="reservation-info" class="mt-2 text-xs text-gray-600"></div>
+                </div>
+
+                <div id="order-header" class="bg-white p-4 rounded shadow mb-4">
+                    <div class="mb-2">
+                        <strong>Orden ID:</strong> <span id="order-id">Nueva Orden</span>
+                    </div>
+                </div>
+
+                <div id="order-items" class="bg-white p-4 rounded shadow mb-4 min-h-32">
+                    <!-- Items se agregarán aquí dinámicamente -->
+                    <p class="text-gray-500 text-center py-8">No hay items en la orden</p>
+                </div>
+
+                <div class="bg-white p-4 rounded shadow">
+                    <div class="flex justify-between font-bold text-lg">
+                        <span>Total:</span>
+                        <span id="total">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex gap-2">
+                    <button id="charge-btn" class="bg-blue-500 text-white px-4 py-2 rounded flex-1" onclick="chargeOrder()" disabled>Cobrar</button>
+                    <button class="bg-gray-500 text-white px-4 py-2 rounded flex-1" onclick="clearOrder()">Limpiar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        let currentOrder = null;
+        let products = [];
+        let currentReservation = null;
+
+        // Obtener token de autenticación (de la sesión Laravel)
+        function getAuthToken() {
+            // En páginas web tradicionales, Laravel maneja la autenticación automáticamente
+            return null; // No necesitamos token manual
+        }
+
+        // Cargar productos desde API
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_BASE}/products`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin' // Para enviar cookies de sesión
+                });
+
+                if (!response.ok) throw new Error('Error al cargar productos');
+
+                products = await response.json();
+                displayProducts(products);
+            } catch (error) {
+                console.error('Error loading products:', error);
+                alert('Error al cargar productos. Verifica la conexión.');
+            }
+        }
+
+        // Mostrar productos en el grid
+        function displayProducts(productsList) {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = '';
+
+            productsList.forEach(product => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product-item bg-white p-4 rounded shadow';
+                productDiv.onclick = () => addProductToOrder(product);
+                productDiv.innerHTML = `
+                    <div class="font-semibold text-sm">${product.nombre}</div>
+                    <div class="text-gray-600 text-sm">$${parseFloat(product.precio).toFixed(2)}</div>
+                    <div class="text-xs text-gray-500">Stock: ${product.stock}</div>
+                `;
+                grid.appendChild(productDiv);
+            });
+        }
+
+        // Cargar reserva por ID
+        async function loadReservation() {
+            const reservationId = document.getElementById('reservation-id').value;
+            if (!reservationId) {
+                alert('Ingresa un ID de reserva');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/reservations/${reservationId}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) throw new Error('Reserva no encontrada');
+
+                currentReservation = await response.json();
+                displayReservationInfo(currentReservation);
+            } catch (error) {
+                console.error('Error loading reservation:', error);
+                alert('Error al cargar la reserva');
+            }
+        }
+
+        // Mostrar información de la reserva
+        function displayReservationInfo(reservation) {
+            const infoDiv = document.getElementById('reservation-info');
+            infoDiv.innerHTML = `
+                <div><strong>Cliente:</strong> ${reservation.user.nombre}</div>
+                <div><strong>Cancha:</strong> ${reservation.court.nombre}</div>
+                <div><strong>Fecha/Hora:</strong> ${reservation.fecha} ${reservation.hora_inicio}</div>
+                <div><strong>Estado:</strong> ${reservation.estado}</div>
+            `;
+        }
+
+        // Crear nueva orden
+        async function createOrder() {
+            const reservationId = currentReservation ? currentReservation.id : null;
+
+            try {
+                const response = await fetch(`${API_BASE}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        reservation_id: reservationId
+                    })
+                });
+
+                if (!response.ok) throw new Error('Error al crear orden');
+
+                currentOrder = await response.json();
+                updateOrderDisplay();
+                document.getElementById('charge-btn').disabled = false;
+            } catch (error) {
+                console.error('Error creating order:', error);
+                alert('Error al crear la orden');
+            }
+        }
+
+        // Agregar producto a la orden
+        async function addProductToOrder(product) {
+            if (!currentOrder) {
+                await createOrder();
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/orders/${currentOrder.id}/items`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        product_id: product.id,
+                        cantidad: 1
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Error al agregar producto');
+                }
+
+                const updatedOrder = await response.json();
+                currentOrder = updatedOrder;
+                updateOrderDisplay();
+            } catch (error) {
+                console.error('Error adding product:', error);
+                alert(error.message);
+            }
+        }
+
+        // Actualizar display de la orden
+        function updateOrderDisplay() {
+            const orderIdSpan = document.getElementById('order-id');
+            const itemsDiv = document.getElementById('order-items');
+            const totalSpan = document.getElementById('total');
+
+            if (!currentOrder) {
+                orderIdSpan.textContent = 'Nueva Orden';
+                itemsDiv.innerHTML = '<p class="text-gray-500 text-center py-8">No hay items en la orden</p>';
+                totalSpan.textContent = '$0.00';
+                return;
+            }
+
+            orderIdSpan.textContent = `#${currentOrder.id}`;
+            itemsDiv.innerHTML = '';
+
+            if (currentOrder.order_items && currentOrder.order_items.length > 0) {
+                currentOrder.order_items.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'flex justify-between items-center mb-2 p-2 border-b';
+                    itemDiv.innerHTML = `
+                        <span>${item.product.nombre} x${item.cantidad}</span>
+                        <span>$${(item.cantidad * item.precio_unitario).toFixed(2)}</span>
+                        <button onclick="removeItem(${item.id})" class="text-red-500 ml-2">×</button>
+                    `;
+                    itemsDiv.appendChild(itemDiv);
+                });
+            } else {
+                itemsDiv.innerHTML = '<p class="text-gray-500 text-center py-8">No hay items en la orden</p>';
+            }
+
+            totalSpan.textContent = `$${parseFloat(currentOrder.total || 0).toFixed(2)}`;
+        }
+
+        // Remover item de la orden
+        async function removeItem(itemId) {
+            if (!currentOrder) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/orders/${currentOrder.id}/items/${itemId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) throw new Error('Error al remover item');
+
+                const updatedOrder = await response.json();
+                currentOrder = updatedOrder;
+                updateOrderDisplay();
+            } catch (error) {
+                console.error('Error removing item:', error);
+                alert('Error al remover el item');
+            }
+        }
+
+        // Limpiar orden
+        function clearOrder() {
+            currentOrder = null;
+            updateOrderDisplay();
+            document.getElementById('charge-btn').disabled = true;
+        }
+
+        // Cobrar orden
+        async function chargeOrder() {
+            if (!currentOrder || !currentOrder.order_items || currentOrder.order_items.length === 0) {
+                alert('No hay items en la orden');
+                return;
+            }
+
+            if (confirm(`¿Confirmar cobro de $${parseFloat(currentOrder.total).toFixed(2)}?`)) {
+                try {
+                    const response = await fetch(`${API_BASE}/orders/${currentOrder.id}/close`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        },
+                        credentials: 'same-origin'
+                    });
+
+                    if (!response.ok) throw new Error('Error al cerrar la orden');
+
+                    alert('Orden cerrada exitosamente');
+                    clearOrder();
+                } catch (error) {
+                    console.error('Error closing order:', error);
+                    alert('Error al cerrar la orden');
+                }
+            }
+        }
+
+        // Búsqueda de productos
+        document.getElementById('search-product').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredProducts = products.filter(product =>
+                product.nombre.toLowerCase().includes(searchTerm)
+            );
+            displayProducts(filteredProducts);
+        });
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProducts();
+        });
+    </script>
+
+    <!-- CSRF Token para AJAX -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</body>
+</html>
