@@ -42,6 +42,15 @@
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold">Dashboard Administrador</h1>
             <div class="flex gap-2">
+                <a href="{{ route('admin.pos.index') }}" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    🛒 POS
+                </a>
+                <a href="{{ route('admin.sales.index') }}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                    💰 Gestionar Ventas
+                </a>
+                <a href="{{ route('admin.reservations.index') }}" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                    📅 Gestionar Reservas
+                </a>
                 <a href="{{ route('dashboard.export.sales') }}" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                     📊 Exportar Ventas
                 </a>

@@ -32,6 +32,20 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/reservations', [DashboardController::class, 'index'])->name('reservations.index'); // Clientes usan el mismo dashboard
 
+    // Rutas de administración (solo para admin)
+    Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
+        // POS para admin
+        Route::get('/pos', [\App\Http\Controllers\Web\PosController::class, 'index'])->name('pos.index');
+        Route::post('/pos', [\App\Http\Controllers\Web\PosController::class, 'store'])->name('pos.store');
+        Route::get('/pos/product/{product_id}', [\App\Http\Controllers\Web\PosController::class, 'getProduct'])->name('pos.product');
+
+        // Gestión de ventas
+        Route::resource('sales', \App\Http\Controllers\Web\SaleController::class);
+
+        // Gestión de reservas
+        Route::resource('reservations', \App\Http\Controllers\Web\ReservationController::class);
+    });
+
     // Exportaciones (usando el controlador API existente)
     Route::get('/dashboard/export/sales', [\App\Http\Controllers\DashboardController::class, 'exportSales'])->name('dashboard.export.sales');
     Route::get('/dashboard/export/reservations', [\App\Http\Controllers\DashboardController::class, 'exportReservations'])->name('dashboard.export.reservations');

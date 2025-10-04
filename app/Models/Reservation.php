@@ -45,15 +45,20 @@ class Reservation extends Model
         return $this->hasMany(Order::class);
     }
 
-    public static function isSlotAvailable($courtId, $fecha, $horaInicio, $duracionHoras)
+    public static function isSlotAvailable($courtId, $fecha, $horaInicio, $duracionHoras, $excludeReservationId = null)
     {
         $startTime = Carbon::parse($horaInicio);
         $endTime = $startTime->copy()->addHours($duracionHoras);
 
-        $overlappingReservations = self::where('court_id', $courtId)
+        $query = self::where('court_id', $courtId)
             ->where('fecha', $fecha)
-            ->where('estado', '!=', 'cancelada')
-            ->get()
+            ->where('estado', '!=', 'cancelada');
+
+        if ($excludeReservationId) {
+            $query->where('id', '!=', $excludeReservationId);
+        }
+
+        $overlappingReservations = $query->get()
             ->filter(function ($reservation) use ($startTime, $endTime) {
                 $resStart = Carbon::parse($reservation->hora_inicio);
                 $resEnd = $resStart->copy()->addHours($reservation->duracion_horas);
