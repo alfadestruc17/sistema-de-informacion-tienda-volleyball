@@ -75,7 +75,7 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('dashboard')->with('success', 'Cuenta creada exitosamente');
+        return redirect()->route('client.dashboard')->with('success', 'Cuenta creada exitosamente');
     }
 
     public function logout(Request $request)

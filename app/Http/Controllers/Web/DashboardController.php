@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -23,14 +24,20 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         if ($user->role->nombre === 'cliente') {
             return redirect()->route('client.calendar');
         }
 
         // Para admin y cajero, mostrar dashboard administrativo
-        return $this->admin();
+        $kpis = $this->getKPIs();
+        $weeklyRevenue = $this->getWeeklyRevenueData();
+        $topProducts = $this->getTopProductsData();
+        $weeklyCalendar = $this->getWeeklyCalendarData();
+        $stats = $this->getStatsData();
+
+        return view('dashboard.index', compact('kpis', 'weeklyRevenue', 'topProducts', 'weeklyCalendar', 'stats'));
     }
 
     /**
@@ -38,10 +45,14 @@ class DashboardController extends Controller
      */
     public function admin()
     {
-        $this->middleware('role:admin');
+        // Lógica específica para admin - mostrar dashboard completo
+        $kpis = $this->getKPIs();
+        $weeklyRevenue = $this->getWeeklyRevenueData();
+        $topProducts = $this->getTopProductsData();
+        $weeklyCalendar = $this->getWeeklyCalendarData();
+        $stats = $this->getStatsData();
 
-        // Misma lógica que index pero con más permisos
-        return $this->index();
+        return view('dashboard.index', compact('kpis', 'weeklyRevenue', 'topProducts', 'weeklyCalendar', 'stats'));
     }
 
     private function getKPIs()
