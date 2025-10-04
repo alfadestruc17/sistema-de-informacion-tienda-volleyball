@@ -41,4 +41,9 @@ class Order extends Model
             return $item->cantidad * $item->precio_unitario;
         });
     }
+
+    public function recalculateTotal(): void
+    {
+        $this->update(['total' => $this->calculateTotal()]);
+    }
 }

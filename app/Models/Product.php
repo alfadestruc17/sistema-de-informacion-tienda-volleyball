@@ -36,4 +36,9 @@ class Product extends Model
         }
         $this->decrement('stock', $quantity);
     }
+
+    public function addStock(int $quantity): void
+    {
+        $this->increment('stock', $quantity);
+    }
 }

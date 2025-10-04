@@ -92,4 +92,80 @@ class PosController extends Controller
             'stock' => $product->stock,
         ]);
     }
+
+    public function createOrder(Request $request)
+    {
+        $request->validate([
+            'reservation_id' => 'nullable|exists:reservations,id',
+        ]);
+
+        $order = \App\Models\Order::create([
+            'user_id' => Auth::id(),
+            'reservation_id' => $request->reservation_id,
+            'total' => 0,
+            'estado_pago' => 'pendiente',
+        ]);
+
+        return response()->json($order->load('order_items.product'));
+    }
+
+    public function addItem(Request $request, \App\Models\Order $order)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'cantidad' => 'required|integer|min:1',
+        ]);
+
+        $product = Product::find($request->product_id);
+
+        if (!$product->hasStock($request->cantidad)) {
+            return response()->json(['error' => 'Stock insuficiente'], 400);
+        }
+
+        $orderItem = \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $request->product_id,
+            'cantidad' => $request->cantidad,
+            'precio_unitario' => $product->precio,
+        ]);
+
+        // Reducir stock
+        $product->reduceStock($request->cantidad);
+
+        // Recalcular total
+        $order->recalculateTotal();
+
+        return response()->json($order->load('order_items.product'));
+    }
+
+    public function removeItem(Request $request, \App\Models\Order $order, \App\Models\OrderItem $item)
+    {
+        // Devolver stock
+        $item->product->addStock($item->cantidad);
+
+        $item->delete();
+
+        // Recalcular total
+        $order->recalculateTotal();
+
+        return response()->json($order->load('order_items.product'));
+    }
+
+    public function closeOrder(Request $request, \App\Models\Order $order)
+    {
+        $order->update(['estado_pago' => 'pagado']);
+
+        return response()->json($order);
+    }
+
+    public function getReservation(Request $request, $id)
+    {
+        $reservation = \App\Models\Reservation::with('user', 'court')->find($id);
+
+        if (!$reservation) {
+            return response()->json(['error' => 'Reserva no encontrada'], 404);
+        }
+
+        return response()->json($reservation);
+    }
 }
