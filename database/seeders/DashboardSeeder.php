@@ -46,12 +46,12 @@ class DashboardSeeder extends Seeder
         // Crear canchas si no existen
         $court1 = Court::firstOrCreate(
             ['nombre' => 'Cancha 1'],
-            ['descripcion' => 'Cancha principal de voleibol', 'precio_por_hora' => 25.00, 'estado' => 'activa']
+            ['descripcion' => 'Cancha principal de voleibol', 'precio_por_hora' => 25.00, 'estado' => 'activo']
         );
 
         $court2 = Court::firstOrCreate(
             ['nombre' => 'Cancha 2'],
-            ['descripcion' => 'Cancha secundaria de voleibol', 'precio_por_hora' => 20.00, 'estado' => 'activa']
+            ['descripcion' => 'Cancha secundaria de voleibol', 'precio_por_hora' => 20.00, 'estado' => 'activo']
         );
 
         // Crear algunas reservas de los últimos días
