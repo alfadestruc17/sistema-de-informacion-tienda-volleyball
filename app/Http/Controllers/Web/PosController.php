@@ -18,9 +18,9 @@ class PosController extends Controller
         $products = Product::where('stock', '>', 0)->get();
         $users = User::where('rol_id', '!=', 1)->get(); // Excluir admins
 
-        // Si es cajero, usar vista diferente
+        // Si es cajero, usar vista simple sin AJAX
         if (Auth::user()->role->nombre === 'cajero') {
-            return view('pos.index', compact('products', 'users'));
+            return view('pos.simple', compact('products', 'users'));
         }
 
         return view('admin.pos.index', compact('products', 'users'));
@@ -95,6 +95,16 @@ class PosController extends Controller
 
     public function createOrder(Request $request)
     {
+        // Verificar que el usuario esté autenticado y sea cajero
+        if (!Auth::check()) {
+            return response()->json(['error' => 'Usuario no autenticado'], 401);
+        }
+
+        $user = Auth::user();
+        if (!$user->role || $user->role->nombre !== 'cajero') {
+            return response()->json(['error' => 'Acceso denegado - Solo cajeros'], 403);
+        }
+
         $request->validate([
             'reservation_id' => 'nullable|exists:reservations,id',
         ]);
@@ -111,6 +121,16 @@ class PosController extends Controller
 
     public function addItem(Request $request, \App\Models\Order $order)
     {
+        // Verificar que el usuario esté autenticado y sea cajero
+        if (!Auth::check()) {
+            return response()->json(['error' => 'Usuario no autenticado'], 401);
+        }
+
+        $user = Auth::user();
+        if (!$user->role || $user->role->nombre !== 'cajero') {
+            return response()->json(['error' => 'Acceso denegado - Solo cajeros'], 403);
+        }
+
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'cantidad' => 'required|integer|min:1',
@@ -167,5 +187,130 @@ class PosController extends Controller
         }
 
         return response()->json($reservation);
+    }
+
+    // Métodos para POS simple con sesiones
+    public function addToCart(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'cantidad' => 'required|integer|min:1',
+        ]);
+
+        $product = Product::find($request->product_id);
+
+        if (!$product->hasStock($request->cantidad)) {
+            return back()->with('error', 'Stock insuficiente para este producto');
+        }
+
+        $cart = session('cart', []);
+
+        // Verificar si el producto ya está en el carrito
+        $found = false;
+        foreach ($cart as &$item) {
+            if ($item['product']['id'] == $product->id) {
+                $item['cantidad'] += $request->cantidad;
+                $found = true;
+                break;
+            }
+        }
+
+        if (!$found) {
+            $cart[] = [
+                'product' => $product->toArray(),
+                'cantidad' => $request->cantidad,
+            ];
+        }
+
+        // Calcular total
+        $total = 0;
+        foreach ($cart as $item) {
+            $total += $item['cantidad'] * $item['product']['precio'];
+        }
+
+        session(['cart' => $cart, 'cart_total' => $total]);
+
+        return back()->with('success', 'Producto agregado al carrito');
+    }
+
+    public function removeFromCart(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+        ]);
+
+        $cart = session('cart', []);
+        $productId = $request->product_id;
+
+        // Remover producto del carrito
+        $cart = array_filter($cart, function($item) use ($productId) {
+            return $item['product']['id'] != $productId;
+        });
+
+        // Recalcular total
+        $total = 0;
+        foreach ($cart as $item) {
+            $total += $item['cantidad'] * $item['product']['precio'];
+        }
+
+        session(['cart' => array_values($cart), 'cart_total' => $total]);
+
+        return back();
+    }
+
+    public function clearCart(Request $request)
+    {
+        session()->forget(['cart', 'cart_total', 'current_order_id', 'reservation']);
+        return back();
+    }
+
+    public function loadReservation(Request $request)
+    {
+        $request->validate([
+            'reservation_id' => 'required|exists:reservations,id',
+        ]);
+
+        $reservation = \App\Models\Reservation::with('user', 'court')->find($request->reservation_id);
+
+        session(['reservation' => $reservation->toArray()]);
+
+        return back()->with('success', 'Reserva cargada exitosamente');
+    }
+
+    public function checkout(Request $request)
+    {
+        $cart = session('cart', []);
+        $reservation = session('reservation');
+
+        if (empty($cart)) {
+            return back()->with('error', 'El carrito está vacío');
+        }
+
+        // Crear orden
+        $order = \App\Models\Order::create([
+            'user_id' => Auth::id(),
+            'reservation_id' => $reservation ? $reservation['id'] : null,
+            'total' => session('cart_total', 0),
+            'estado_pago' => 'pagado',
+        ]);
+
+        // Crear items de la orden y reducir stock
+        foreach ($cart as $item) {
+            \App\Models\OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $item['product']['id'],
+                'cantidad' => $item['cantidad'],
+                'precio_unitario' => $item['product']['precio'],
+            ]);
+
+            // Reducir stock
+            $product = Product::find($item['product']['id']);
+            $product->reduceStock($item['cantidad']);
+        }
+
+        // Limpiar carrito
+        session()->forget(['cart', 'cart_total', 'current_order_id', 'reservation']);
+
+        return back()->with('success', 'Orden procesada exitosamente. ID: #' . $order->id);
     }
 }

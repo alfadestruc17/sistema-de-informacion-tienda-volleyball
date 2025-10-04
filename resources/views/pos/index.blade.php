@@ -194,14 +194,17 @@
                     })
                 });
 
-                if (!response.ok) throw new Error('Error al crear orden');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al crear orden');
+                }
 
                 currentOrder = await response.json();
                 updateOrderDisplay();
                 document.getElementById('charge-btn').disabled = false;
             } catch (error) {
                 console.error('Error creating order:', error);
-                alert('Error al crear la orden');
+                alert('Error al crear la orden: ' + error.message);
             }
         }
 
@@ -209,6 +212,11 @@
         async function addProductToOrder(product) {
             if (!currentOrder) {
                 await createOrder();
+            }
+
+            if (!currentOrder) {
+                alert('Error al crear la orden');
+                return;
             }
 
             try {
