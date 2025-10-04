@@ -32,7 +32,7 @@
                 <div>
                     <label for="nombre" class="sr-only">Nombre completo</label>
                     <input id="nombre" name="nombre" type="text" autocomplete="name" required
-                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm @error('nombre') border-red-300 @enderror"
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border  placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm @error('nombre') border-red-300 @enderror"
                            placeholder="Nombre completo"
                            value="{{ old('nombre') }}">
                     @error('nombre')
@@ -43,7 +43,7 @@
                 <div>
                     <label for="email" class="sr-only">Correo electrónico</label>
                     <input id="email" name="email" type="email" autocomplete="email" required
-                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm @error('email') border-red-300 @enderror"
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border  placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm @error('email') border-red-300 @enderror"
                            placeholder="Correo electrónico"
                            value="{{ old('email') }}">
                     @error('email')
@@ -54,7 +54,7 @@
                 <div>
                     <label for="telefono" class="sr-only">Teléfono</label>
                     <input id="telefono" name="telefono" type="tel" autocomplete="tel"
-                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm @error('telefono') border-red-300 @enderror"
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border  placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm @error('telefono') border-red-300 @enderror"
                            placeholder="Teléfono (opcional)"
                            value="{{ old('telefono') }}">
                     @error('telefono')
@@ -65,7 +65,7 @@
                 <div>
                     <label for="password" class="sr-only">Contraseña</label>
                     <input id="password" name="password" type="password" autocomplete="new-password" required
-                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm @error('password') border-red-300 @enderror"
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border  placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm @error('password') border-red-300 @enderror"
                            placeholder="Contraseña">
                     @error('password')
                         <p class="mt-1 text-sm text-red-200">{{ $message }}</p>

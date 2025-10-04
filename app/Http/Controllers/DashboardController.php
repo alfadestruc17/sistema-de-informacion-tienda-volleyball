@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 use App\Models\Product;
 use App\Models\Reservation;
 use App\Models\Court;
@@ -11,7 +13,6 @@ use App\Exports\SalesReportExport;
 use App\Exports\ReservationsReportExport;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
 class DashboardController extends Controller

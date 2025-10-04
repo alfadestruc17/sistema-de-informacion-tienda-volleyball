@@ -25,9 +25,21 @@ class DashboardSeeder extends Seeder
             $admin = User::create([
                 'nombre' => 'Admin User',
                 'email' => 'admin@example.com',
-                'password_hash' => bcrypt('password'),
+                'password' => bcrypt('password'),
                 'telefono' => '3000000000',
                 'rol_id' => 1, // admin
+            ]);
+        }
+
+        // Crear usuario cajero si no existe
+        $cajero = User::where('email', 'cajero@example.com')->first();
+        if (!$cajero) {
+            $cajero = User::create([
+                'nombre' => 'María Cajero',
+                'email' => 'cajero@example.com',
+                'password' => bcrypt('password'),
+                'telefono' => '3002222222',
+                'rol_id' => 2, // cajero
             ]);
         }
 
@@ -37,7 +49,7 @@ class DashboardSeeder extends Seeder
             $cliente = User::create([
                 'nombre' => 'Juan Cliente',
                 'email' => 'cliente@example.com',
-                'password_hash' => bcrypt('password'),
+                'password' => bcrypt('password'),
                 'telefono' => '3001111111',
                 'rol_id' => 3, // cliente
             ]);
