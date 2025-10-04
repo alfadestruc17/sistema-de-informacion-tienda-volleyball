@@ -46,7 +46,8 @@ class AuthController extends Controller
             } elseif ($user->role->nombre === 'cajero') {
                 return redirect()->route('pos.index');
             } else {
-                return redirect()->route('reservations.index');
+                // Cliente: redirigir al dashboard general
+                return redirect()->route('dashboard');
             }
         }
 
@@ -67,7 +68,7 @@ class AuthController extends Controller
         $user = User::create([
             'nombre' => $request->nombre,
             'email' => $request->email,
-            'password_hash' => Hash::make($request->password),
+            'password' => Hash::make($request->password),
             'telefono' => $request->telefono,
             'rol_id' => 3, // cliente por defecto
         ]);

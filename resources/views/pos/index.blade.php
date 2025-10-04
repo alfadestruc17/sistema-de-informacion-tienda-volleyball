@@ -100,7 +100,7 @@
     </div>
 
     <script>
-        const API_BASE = 'http://127.0.0.1:8000/api';
+        const API_BASE = '/pos';
         let currentOrder = null;
         let products = [];
         let currentReservation = null;
@@ -111,25 +111,10 @@
             return null; // No necesitamos token manual
         }
 
-        // Cargar productos desde API
-        async function loadProducts() {
-            try {
-                const response = await fetch(`${API_BASE}/products`, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    credentials: 'same-origin' // Para enviar cookies de sesión
-                });
-
-                if (!response.ok) throw new Error('Error al cargar productos');
-
-                products = await response.json();
-                displayProducts(products);
-            } catch (error) {
-                console.error('Error loading products:', error);
-                alert('Error al cargar productos. Verifica la conexión.');
-            }
+        // Cargar productos (ya están disponibles desde el controlador)
+        function loadProducts() {
+            products = @json($products);
+            displayProducts(products);
         }
 
         // Mostrar productos en el grid
@@ -159,10 +144,12 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE}/reservations/${reservationId}`, {
+                const response = await fetch(`/pos/reservations/${reservationId}`, {
+                    method: 'GET',
                     headers: {
                         'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                     },
                     credentials: 'same-origin'
                 });
@@ -196,25 +183,28 @@
                 const response = await fetch(`${API_BASE}/orders`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({
+                    body: new URLSearchParams({
                         reservation_id: reservationId
                     })
                 });
 
-                if (!response.ok) throw new Error('Error al crear orden');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al crear orden');
+                }
 
                 currentOrder = await response.json();
                 updateOrderDisplay();
                 document.getElementById('charge-btn').disabled = false;
             } catch (error) {
                 console.error('Error creating order:', error);
-                alert('Error al crear la orden');
+                alert('Error al crear la orden: ' + error.message);
             }
         }
 
@@ -224,17 +214,22 @@
                 await createOrder();
             }
 
+            if (!currentOrder) {
+                alert('Error al crear la orden');
+                return;
+            }
+
             try {
                 const response = await fetch(`${API_BASE}/orders/${currentOrder.id}/items`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({
+                    body: new URLSearchParams({
                         product_id: product.id,
                         cantidad: 1
                     })
@@ -300,7 +295,10 @@
                         'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                     },
-                    credentials: 'same-origin'
+                    credentials: 'same-origin',
+                    body: new URLSearchParams({
+                        _method: 'DELETE'
+                    })
                 });
 
                 if (!response.ok) throw new Error('Error al remover item');
@@ -331,13 +329,17 @@
             if (confirm(`¿Confirmar cobro de $${parseFloat(currentOrder.total).toFixed(2)}?`)) {
                 try {
                     const response = await fetch(`${API_BASE}/orders/${currentOrder.id}/close`, {
-                        method: 'PATCH',
+                        method: 'POST',
                         headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
                             'Accept': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                         },
-                        credentials: 'same-origin'
+                        credentials: 'same-origin',
+                        body: new URLSearchParams({
+                            _method: 'PATCH'
+                        })
                     });
 
                     if (!response.ok) throw new Error('Error al cerrar la orden');

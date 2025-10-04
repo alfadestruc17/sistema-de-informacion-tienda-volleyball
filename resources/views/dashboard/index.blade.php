@@ -42,6 +42,15 @@
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold">Dashboard Administrador</h1>
             <div class="flex gap-2">
+                <a href="{{ route('admin.pos.index') }}" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    🛒 POS
+                </a>
+                <a href="{{ route('admin.sales.index') }}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                    💰 Gestionar Ventas
+                </a>
+                <a href="{{ route('admin.reservations.index') }}" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                    📅 Gestionar Reservas
+                </a>
                 <a href="{{ route('dashboard.export.sales') }}" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                     📊 Exportar Ventas
                 </a>
@@ -125,7 +134,11 @@
             </div>
 
             <div id="calendar-container" class="overflow-x-auto">
-                {{ generateCalendarHTML($weeklyCalendar['courts']) }}
+                @php
+                    // Debug temporal
+                    // dd($weeklyCalendar);
+                @endphp
+                {!! generateCalendarHTML($weeklyCalendar['courts']) !!}
             </div>
         </div>
 
@@ -262,14 +275,31 @@
 
         function getReservationsForDayAndHour($courts, $dayIndex, $hour) {
             $reservations = [];
-            foreach ($courts as $court) {
-                foreach ($court['reservations'] as $reservation) {
-                    $resDate = new DateTime($reservation['fecha']);
-                    $resDay = $resDate->format('N'); // 1 = Lunes, 7 = Domingo
-                    $resHour = substr($reservation['hora_inicio'], 0, 5);
+            if (!is_array($courts)) {
+                return $reservations;
+            }
 
-                    if ($resDay == $dayIndex && $resHour == $hour) {
-                        $reservations[] = $reservation;
+            foreach ($courts as $court) {
+                if (!isset($court['reservations']) || !is_array($court['reservations'])) {
+                    continue;
+                }
+
+                foreach ($court['reservations'] as $reservation) {
+                    if (!is_array($reservation) || !isset($reservation['fecha']) || !isset($reservation['hora_inicio'])) {
+                        continue;
+                    }
+
+                    try {
+                        $resDate = new DateTime($reservation['fecha']);
+                        $resDay = $resDate->format('N'); // 1 = Lunes, 7 = Domingo
+                        $resHour = substr($reservation['hora_inicio'], 0, 5);
+
+                        if ($resDay == $dayIndex && $resHour == $hour) {
+                            $reservations[] = $reservation;
+                        }
+                    } catch (Exception $e) {
+                        // Skip invalid dates
+                        continue;
                     }
                 }
             }
