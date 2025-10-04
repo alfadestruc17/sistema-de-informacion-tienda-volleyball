@@ -107,7 +107,7 @@
                                 <td class="border border-gray-300 p-2 bg-gray-50 font-medium">{{ $hour }}</td>
                                 @foreach($currentWeek['days'] as $dayIndex => $day)
                                     @php
-                                        $isAvailable = $this->isTimeSlotAvailable($selectedCourt, $day['date'], $hour);
+                                        $isAvailable = $availability[$day['date']][$hour] ?? false;
                                         $status = $isAvailable ? 'available' : 'occupied';
                                         $dateTime = $day['date'] . ' ' . $hour;
                                     @endphp

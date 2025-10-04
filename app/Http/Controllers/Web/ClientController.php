@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\Http\Controllers\Controller;
+
 use App\Models\Court;
 use App\Models\Reservation;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -28,14 +29,24 @@ class ClientController extends Controller
         $courts = Court::where('estado', 'activo')->get();
         $selectedCourt = null;
         $currentWeek = $this->getCurrentWeek();
+        $availability = [];
 
         if ($request->has('court_id')) {
             $selectedCourt = Court::find($request->court_id);
+
+            // Calcular disponibilidad para cada slot
+            if ($selectedCourt) {
+                foreach ($currentWeek['days'] as $day) {
+                    foreach (['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'] as $hour) {
+                        $availability[$day['date']][$hour] = $this->isTimeSlotAvailable($selectedCourt, $day['date'], $hour);
+                    }
+                }
+            }
         }
 
         $hours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
 
-        return view('calendar.index', compact('courts', 'selectedCourt', 'currentWeek', 'hours'));
+        return view('calendar.index', compact('courts', 'selectedCourt', 'currentWeek', 'hours', 'availability'));
     }
 
     public function reservations()
