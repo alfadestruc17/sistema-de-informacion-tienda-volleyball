@@ -104,28 +104,12 @@
     </div>
 
     <script>
-        let products = [];
+        let products = @json($products);
         let selectedProducts = {};
 
-        // Cargar productos
-        async function loadProducts() {
-            try {
-                const response = await fetch('/api/products', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    credentials: 'same-origin'
-                });
-
-                if (!response.ok) throw new Error('Error al cargar productos');
-
-                products = await response.json();
-                displayProducts(products);
-            } catch (error) {
-                console.error('Error loading products:', error);
-                alert('Error al cargar productos');
-            }
+        // Cargar productos (ya están disponibles desde el controlador)
+        function loadProducts() {
+            displayProducts(products);
         }
 
         // Mostrar productos
