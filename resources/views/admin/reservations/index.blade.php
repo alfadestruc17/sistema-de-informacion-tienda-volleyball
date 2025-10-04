@@ -77,7 +77,7 @@
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                         @if($reservation->estado == 'confirmada') bg-green-100 text-green-800
                                         @elseif($reservation->estado == 'pendiente') bg-yellow text-yellow
-                                        @else bg-red text-red   @endif">
+                                        @else bg-red text-red @endif">
                                         {{ ucfirst($reservation->estado) }}
                                     </span>
                                 </td>
