@@ -111,25 +111,10 @@
             return null; // No necesitamos token manual
         }
 
-        // Cargar productos desde API
-        async function loadProducts() {
-            try {
-                const response = await fetch(`${API_BASE}/products`, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    credentials: 'same-origin' // Para enviar cookies de sesión
-                });
-
-                if (!response.ok) throw new Error('Error al cargar productos');
-
-                products = await response.json();
-                displayProducts(products);
-            } catch (error) {
-                console.error('Error loading products:', error);
-                alert('Error al cargar productos. Verifica la conexión.');
-            }
+        // Cargar productos (ya están disponibles desde el controlador)
+        function loadProducts() {
+            products = @json($products);
+            displayProducts(products);
         }
 
         // Mostrar productos en el grid

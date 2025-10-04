@@ -26,9 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', [DashboardController::class, 'admin'])->name('admin.dashboard')->middleware('role:admin');
 
     // Rutas adicionales para diferentes roles
-    Route::get('/pos', function () {
-        return view('pos.index');
-    })->name('pos.index')->middleware('role:cajero');
+    Route::get('/pos', [\App\Http\Controllers\Web\PosController::class, 'index'])->name('pos.index')->middleware('role:cajero');
 
 
     // Rutas de administración (solo para admin)

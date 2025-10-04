@@ -18,6 +18,11 @@ class PosController extends Controller
         $products = Product::where('stock', '>', 0)->get();
         $users = User::where('rol_id', '!=', 1)->get(); // Excluir admins
 
+        // Si es cajero, usar vista diferente
+        if (Auth::user()->role->nombre === 'cajero') {
+            return view('pos.index', compact('products', 'users'));
+        }
+
         return view('admin.pos.index', compact('products', 'users'));
     }
 
