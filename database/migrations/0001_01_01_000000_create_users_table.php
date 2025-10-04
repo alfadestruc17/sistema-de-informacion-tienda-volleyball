@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('nombre');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password_hash');
+            $table->string('password');
             $table->unsignedBigInteger('rol_id');
             $table->string('telefono')->nullable();
             $table->rememberToken();
