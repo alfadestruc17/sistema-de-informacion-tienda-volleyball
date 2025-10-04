@@ -19,30 +19,18 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard principal
+     * Dashboard principal - redirige según rol
      */
     public function index()
     {
-        // KPIs
-        $kpis = $this->getKPIs();
+        $user = auth()->user();
 
-        // Datos para gráficas
-        $weeklyRevenue = $this->getWeeklyRevenueData();
-        $topProducts = $this->getTopProductsData();
+        if ($user->role->nombre === 'cliente') {
+            return redirect()->route('client.calendar');
+        }
 
-        // Calendario semanal
-        $weeklyCalendar = $this->getWeeklyCalendarData();
-
-        // Estadísticas generales
-        $stats = $this->getStatsData();
-
-        return view('dashboard.index', compact(
-            'kpis',
-            'weeklyRevenue',
-            'topProducts',
-            'weeklyCalendar',
-            'stats'
-        ));
+        // Para admin y cajero, mostrar dashboard administrativo
+        return $this->admin();
     }
 
     /**

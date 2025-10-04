@@ -34,5 +34,13 @@ class DatabaseSeeder extends Seeder
             'rol_id' => 2, // cajero
             'telefono' => '3001234568',
         ]);
+
+        User::factory()->create([
+            'nombre' => 'Cliente Test',
+            'email' => 'cliente@example.com',
+            'password' => bcrypt('password'),
+            'rol_id' => 3, // cliente
+            'telefono' => '3001234569',
+        ]);
     }
 }
