@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reservar Cancha - Sistema de Voleibol</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         .time-slot {
             cursor: pointer;
@@ -229,6 +230,25 @@
             // Implementar navegación de semanas
             alert('Funcionalidad próximamente');
         }
+
+        // Mostrar mensajes de éxito/error con SweetAlert
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: '{{ session("success") }}',
+                confirmButtonText: 'Aceptar'
+            });
+        @endif
+
+        @if(session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: '{{ session("error") }}',
+                confirmButtonText: 'Aceptar'
+            });
+        @endif
     </script>
 </body>
 </html>

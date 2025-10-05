@@ -8,6 +8,7 @@ use App\Models\Reservation;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class ClientController extends Controller
@@ -76,7 +77,7 @@ class ClientController extends Controller
     {
         $request->validate([
             'court_id' => 'required|exists:courts,id',
-            'fecha' => 'required|date|after:today',
+            'fecha' => 'required|date|after_or_equal:today',
             'hora_inicio' => 'required|date_format:H:i',
             'duracion_horas' => 'required|integer|min:1|max:3',
         ]);
@@ -89,21 +90,32 @@ class ClientController extends Controller
         }
 
         // Calcular total
-        $total = $court->precio_por_hora * $request->duracion_horas;
+        $total = $court->precio_por_hora * (int) $request->duracion_horas;
 
         // Crear reserva
-        Reservation::create([
-            'user_id' => Auth::id(),
-            'court_id' => $request->court_id,
-            'fecha' => $request->fecha,
-            'hora_inicio' => $request->hora_inicio,
-            'duracion_horas' => $request->duracion_horas,
-            'estado' => 'reservada',
-            'total' => $total,
-            'pagado' => false,
-        ]);
+        try {
+            $reservation = Reservation::create([
+                'user_id' => Auth::id(),
+                'court_id' => $request->court_id,
+                'fecha' => $request->fecha,
+                'hora_inicio' => $request->hora_inicio,
+                'duracion_horas' => (int) $request->duracion_horas,
+                'estado' => 'confirmada',
+                'total_estimado' => $total,
+                'pagado_bool' => false,
+            ]);
 
-        return redirect()->route('client.reservations')->with('success', 'Reserva creada exitosamente');
+            Log::info('Reserva creada exitosamente', ['reservation_id' => $reservation->id]);
+
+            return redirect()->route('calendar.index')->with('success', '¡Reserva creada exitosamente! La cancha ha sido reservada para la fecha y hora seleccionada.');
+        } catch (\Exception $e) {
+            Log::error('Error al crear reserva', [
+                'error' => $e->getMessage(),
+                'data' => $request->all()
+            ]);
+
+            return back()->with('error', 'Error al crear la reserva: ' . $e->getMessage());
+        }
     }
 
     public function payReservation(Reservation $reservation)
@@ -160,7 +172,7 @@ class ClientController extends Controller
     public function isTimeSlotAvailable($court, $date, $startTime, $duration = 1)
     {
         $startDateTime = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $startTime);
-        $endDateTime = $startDateTime->copy()->addHours($duration);
+        $endDateTime = $startDateTime->copy()->addHours((int) $duration);
 
         // Verificar conflictos con otras reservas
         $conflictingReservations = Reservation::where('court_id', $court->id)
@@ -170,7 +182,7 @@ class ClientController extends Controller
 
         foreach ($conflictingReservations as $reservation) {
             $resStart = Carbon::parse($date . ' ' . $reservation->hora_inicio);
-            $resEnd = $resStart->copy()->addHours($reservation->duracion_horas);
+            $resEnd = $resStart->copy()->addHours((int) $reservation->duracion_horas);
 
             // Verificar superposición
             if ($startDateTime < $resEnd && $endDateTime > $resStart) {

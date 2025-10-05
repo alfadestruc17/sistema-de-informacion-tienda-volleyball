@@ -75,7 +75,7 @@ class ReservationController extends Controller
     {
         $reservation->load(['user', 'court']);
         $courts = Court::all();
-        $users = User::where('role_id', '!=', 1)->get();
+        $users = User::where('rol_id', '!=', 1)->get();
 
         return view('admin.reservations.edit', compact('reservation', 'courts', 'users'));
     }

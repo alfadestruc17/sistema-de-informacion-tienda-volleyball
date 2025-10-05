@@ -48,7 +48,7 @@ class Reservation extends Model
     public static function isSlotAvailable($courtId, $fecha, $horaInicio, $duracionHoras, $excludeReservationId = null)
     {
         $startTime = Carbon::parse($horaInicio);
-        $endTime = $startTime->copy()->addHours($duracionHoras);
+        $endTime = $startTime->copy()->addHours((int) $duracionHoras);
 
         $query = self::where('court_id', $courtId)
             ->where('fecha', $fecha)
