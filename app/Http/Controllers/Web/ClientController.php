@@ -75,6 +75,14 @@ class ClientController extends Controller
 
     public function createReservation(Request $request)
     {
+        Log::info('Intentando crear reserva', [
+            'court_id' => $request->court_id,
+            'fecha' => $request->fecha,
+            'hora_inicio' => $request->hora_inicio,
+            'duracion_horas' => $request->duracion_horas,
+            'user_id' => Auth::id()
+        ]);
+
         $request->validate([
             'court_id' => 'required|exists:courts,id',
             'fecha' => 'required|date|after_or_equal:today',
@@ -83,9 +91,24 @@ class ClientController extends Controller
         ]);
 
         $court = Court::find($request->court_id);
+        Log::info('Cancha encontrada', ['court' => $court->toArray()]);
 
         // Verificar disponibilidad
-        if (!$this->isTimeSlotAvailable($court, $request->fecha, $request->hora_inicio, $request->duracion_horas)) {
+        $isAvailable = $this->isTimeSlotAvailable($court, $request->fecha, $request->hora_inicio, $request->duracion_horas);
+        Log::info('Verificación de disponibilidad', [
+            'court_id' => $court->id,
+            'fecha' => $request->fecha,
+            'hora_inicio' => $request->hora_inicio,
+            'duracion_horas' => $request->duracion_horas,
+            'is_available' => $isAvailable
+        ]);
+
+        if (!$isAvailable) {
+            Log::warning('Horario no disponible', [
+                'court_id' => $court->id,
+                'fecha' => $request->fecha,
+                'hora_inicio' => $request->hora_inicio
+            ]);
             return back()->with('error', 'El horario seleccionado no está disponible');
         }
 
@@ -174,22 +197,64 @@ class ClientController extends Controller
         $startDateTime = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $startTime);
         $endDateTime = $startDateTime->copy()->addHours((int) $duration);
 
+        Log::info('Verificando disponibilidad', [
+            'court_id' => $court->id,
+            'date' => $date,
+            'start_time' => $startTime,
+            'duration' => $duration,
+            'requested_start' => $startDateTime->format('Y-m-d H:i'),
+            'requested_end' => $endDateTime->format('Y-m-d H:i')
+        ]);
+
         // Verificar conflictos con otras reservas
         $conflictingReservations = Reservation::where('court_id', $court->id)
             ->where('fecha', $date)
             ->where('estado', '!=', 'cancelada')
             ->get();
 
+        Log::info('Reservas existentes para esta cancha y fecha', [
+            'court_id' => $court->id,
+            'date' => $date,
+            'reservations_count' => $conflictingReservations->count(),
+            'reservations' => $conflictingReservations->map(function($r) {
+                return [
+                    'id' => $r->id,
+                    'hora_inicio' => $r->hora_inicio,
+                    'duracion_horas' => $r->duracion_horas,
+                    'estado' => $r->estado
+                ];
+            })->toArray()
+        ]);
+
         foreach ($conflictingReservations as $reservation) {
             $resStart = Carbon::parse($date . ' ' . $reservation->hora_inicio);
             $resEnd = $resStart->copy()->addHours((int) $reservation->duracion_horas);
 
+            Log::info('Verificando conflicto con reserva existente', [
+                'existing_reservation_id' => $reservation->id,
+                'existing_start' => $resStart->format('Y-m-d H:i'),
+                'existing_end' => $resEnd->format('Y-m-d H:i'),
+                'overlap' => ($startDateTime < $resEnd && $endDateTime > $resStart)
+            ]);
+
             // Verificar superposición
             if ($startDateTime < $resEnd && $endDateTime > $resStart) {
+                Log::warning('Conflicto detectado', [
+                    'court_id' => $court->id,
+                    'requested_slot' => $startDateTime->format('Y-m-d H:i') . ' - ' . $endDateTime->format('Y-m-d H:i'),
+                    'conflicting_reservation' => $reservation->id,
+                    'conflicting_slot' => $resStart->format('Y-m-d H:i') . ' - ' . $resEnd->format('Y-m-d H:i')
+                ]);
                 return false;
             }
         }
 
+        Log::info('Slot disponible', [
+            'court_id' => $court->id,
+            'date' => $date,
+            'time' => $startTime,
+            'duration' => $duration
+        ]);
         return true;
     }
 }
