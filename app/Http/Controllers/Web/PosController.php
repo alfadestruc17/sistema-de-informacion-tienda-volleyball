@@ -7,6 +7,8 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\User;
+use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -286,31 +288,45 @@ class PosController extends Controller
             return back()->with('error', 'El carrito está vacío');
         }
 
-        // Crear orden
-        $order = \App\Models\Order::create([
-            'user_id' => Auth::id(),
-            'reservation_id' => $reservation ? $reservation['id'] : null,
-            'total' => session('cart_total', 0),
-            'estado_pago' => 'pagado',
-        ]);
-
-        // Crear items de la orden y reducir stock
-        foreach ($cart as $item) {
-            \App\Models\OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $item['product']['id'],
-                'cantidad' => $item['cantidad'],
-                'precio_unitario' => $item['product']['precio'],
+        DB::transaction(function () use ($cart, $reservation) {
+            // Crear venta
+            $sale = Sale::create([
+                'user_id' => Auth::id(),
+                'total' => 0, // Se calculará después
+                'estado_pago' => 'pagado',
             ]);
 
-            // Reducir stock
-            $product = Product::find($item['product']['id']);
-            $product->reduceStock($item['cantidad']);
-        }
+            $total = 0;
+
+            // Crear items de venta y reducir stock
+            foreach ($cart as $item) {
+                $product = Product::find($item['product']['id']);
+                $subtotal = $item['cantidad'] * $product->precio;
+
+                \App\Models\SaleItem::create([
+                    'sale_id' => $sale->id,
+                    'product_id' => $item['product']['id'],
+                    'cantidad' => $item['cantidad'],
+                    'precio_unitario' => $product->precio,
+                ]);
+
+                // Reducir stock
+                $product->reduceStock($item['cantidad']);
+                $total += $subtotal;
+            }
+
+            // Actualizar total de la venta
+            $sale->update(['total' => $total]);
+
+            // Si hay reserva asociada, vincularla
+            if ($reservation) {
+                // Aquí podríamos agregar lógica para vincular la venta a la reserva si es necesario
+            }
+        });
 
         // Limpiar carrito
         session()->forget(['cart', 'cart_total', 'current_order_id', 'reservation']);
 
-        return back()->with('success', 'Orden procesada exitosamente. ID: #' . $order->id);
+        return back()->with('success', 'Venta procesada exitosamente');
     }
 }

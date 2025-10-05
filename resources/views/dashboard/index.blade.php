@@ -150,13 +150,13 @@
             </div>
 
             <div class="bg-white p-6 rounded-lg shadow-lg text-center">
-                <h4 class="text-lg font-semibold mb-2">Total Órdenes</h4>
-                <p class="text-3xl font-bold text-blue-600">{{ $stats['total_orders'] }}</p>
+                <h4 class="text-lg font-semibold mb-2">Total Ventas</h4>
+                <p class="text-3xl font-bold text-blue-600">{{ $stats['total_sales'] }}</p>
             </div>
 
             <div class="bg-white p-6 rounded-lg shadow-lg text-center">
-                <h4 class="text-lg font-semibold mb-2">Valor Promedio Orden</h4>
-                <p class="text-3xl font-bold text-purple-600">${{ number_format($stats['average_order_value'], 2) }}</p>
+                <h4 class="text-lg font-semibold mb-2">Valor Promedio Venta</h4>
+                <p class="text-3xl font-bold text-purple-600">${{ number_format($stats['average_sale_value'], 2) }}</p>
             </div>
         </div>
     </div>

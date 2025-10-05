@@ -46,8 +46,8 @@ class AuthController extends Controller
             } elseif ($user->role->nombre === 'cajero') {
                 return redirect()->route('pos.index');
             } else {
-                // Cliente: redirigir al dashboard general
-                return redirect()->route('dashboard');
+                // Cliente: redirigir al dashboard de cliente
+                return redirect()->route('client.dashboard');
             }
         }
 
@@ -75,7 +75,7 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('dashboard')->with('success', 'Cuenta creada exitosamente');
+        return redirect()->route('client.dashboard')->with('success', 'Cuenta creada exitosamente');
     }
 
     public function logout(Request $request)

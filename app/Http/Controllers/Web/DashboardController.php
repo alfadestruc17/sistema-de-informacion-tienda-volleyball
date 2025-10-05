@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Web;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use App\Models\Order;
-use App\Models\OrderItem;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\Product;
 use App\Models\Reservation;
 use App\Models\Court;
@@ -19,30 +20,24 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard principal
+     * Dashboard principal - redirige según rol
      */
     public function index()
     {
-        // KPIs
-        $kpis = $this->getKPIs();
+        $user = Auth::user();
 
-        // Datos para gráficas
+        if ($user->role->nombre === 'cliente') {
+            return redirect()->route('client.calendar');
+        }
+
+        // Para admin y cajero, mostrar dashboard administrativo
+        $kpis = $this->getKPIs();
         $weeklyRevenue = $this->getWeeklyRevenueData();
         $topProducts = $this->getTopProductsData();
-
-        // Calendario semanal
         $weeklyCalendar = $this->getWeeklyCalendarData();
-
-        // Estadísticas generales
         $stats = $this->getStatsData();
 
-        return view('dashboard.index', compact(
-            'kpis',
-            'weeklyRevenue',
-            'topProducts',
-            'weeklyCalendar',
-            'stats'
-        ));
+        return view('dashboard.index', compact('kpis', 'weeklyRevenue', 'topProducts', 'weeklyCalendar', 'stats'));
     }
 
     /**
@@ -50,10 +45,14 @@ class DashboardController extends Controller
      */
     public function admin()
     {
-        $this->middleware('role:admin');
+        // Lógica específica para admin - mostrar dashboard completo
+        $kpis = $this->getKPIs();
+        $weeklyRevenue = $this->getWeeklyRevenueData();
+        $topProducts = $this->getTopProductsData();
+        $weeklyCalendar = $this->getWeeklyCalendarData();
+        $stats = $this->getStatsData();
 
-        // Misma lógica que index pero con más permisos
-        return $this->index();
+        return view('dashboard.index', compact('kpis', 'weeklyRevenue', 'topProducts', 'weeklyCalendar', 'stats'));
     }
 
     private function getKPIs()
@@ -61,9 +60,9 @@ class DashboardController extends Controller
         $date = Carbon::today();
 
         return [
-            'daily_sales' => Order::whereDate('created_at', $date)->where('estado_pago', true)->sum('total'),
+            'daily_sales' => Sale::whereDate('created_at', $date)->where('estado_pago', 'pagado')->sum('total'),
             'active_reservations' => Reservation::whereDate('fecha', $date)->where('estado', 'confirmada')->count(),
-            'weekly_revenue' => Order::whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->where('estado_pago', true)->sum('total'),
+            'weekly_revenue' => Sale::whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->where('estado_pago', 'pagado')->sum('total'),
             'weekly_reservations' => Reservation::whereBetween('fecha', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->count(),
         ];
     }
@@ -75,7 +74,7 @@ class DashboardController extends Controller
 
         for ($i = 0; $i < 7; $i++) {
             $date = $weekStart->copy()->addDays($i);
-            $revenue = Order::whereDate('created_at', $date)->where('estado_pago', true)->sum('total');
+            $revenue = Sale::whereDate('created_at', $date)->where('estado_pago', 'pagado')->sum('total');
             $reservations = Reservation::whereDate('fecha', $date)->count();
 
             $data[] = [
@@ -91,11 +90,11 @@ class DashboardController extends Controller
 
     private function getTopProductsData()
     {
-        return OrderItem::selectRaw('product_id, products.nombre, SUM(cantidad) as total_vendido, SUM(cantidad * precio_unitario) as total_ingresos')
-                       ->join('products', 'order_items.product_id', '=', 'products.id')
-                       ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                       ->where('orders.estado_pago', true)
-                       ->where('orders.created_at', '>=', Carbon::now()->startOfMonth())
+        return SaleItem::selectRaw('product_id, products.nombre, SUM(cantidad) as total_vendido, SUM(cantidad * precio_unitario) as total_ingresos')
+                       ->join('products', 'sale_items.product_id', '=', 'products.id')
+                       ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                       ->where('sales.estado_pago', 'pagado')
+                       ->where('sales.created_at', '>=', Carbon::now()->startOfMonth())
                        ->groupBy('product_id', 'products.nombre')
                        ->orderBy('total_vendido', 'desc')
                        ->limit(10)
@@ -145,10 +144,10 @@ class DashboardController extends Controller
         $dateFrom = Carbon::now()->startOfMonth();
 
         return [
-            'total_revenue' => Order::where('estado_pago', true)->where('created_at', '>=', $dateFrom)->sum('total'),
-            'total_orders' => Order::where('created_at', '>=', $dateFrom)->count(),
+            'total_revenue' => Sale::where('estado_pago', 'pagado')->where('created_at', '>=', $dateFrom)->sum('total'),
+            'total_sales' => Sale::where('created_at', '>=', $dateFrom)->count(),
             'total_reservations' => Reservation::where('fecha', '>=', $dateFrom)->count(),
-            'average_order_value' => Order::where('estado_pago', true)->where('created_at', '>=', $dateFrom)->avg('total') ?? 0
+            'average_sale_value' => Sale::where('estado_pago', 'pagado')->where('created_at', '>=', $dateFrom)->avg('total') ?? 0
         ];
     }
 

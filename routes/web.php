@@ -25,6 +25,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/admin/dashboard', [DashboardController::class, 'admin'])->name('admin.dashboard')->middleware('role:admin');
 
+    // Rutas para clientes (sin middleware restrictivo)
+    Route::get('/calendar', [\App\Http\Controllers\Web\ClientController::class, 'calendar'])->name('calendar.index');
+    Route::get('/client/dashboard', [\App\Http\Controllers\Web\ClientController::class, 'dashboard'])->name('client.dashboard');
+    Route::prefix('client')->name('client.')->group(function () {
+        Route::get('/calendar', [\App\Http\Controllers\Web\ClientController::class, 'calendar'])->name('calendar');
+        Route::get('/reservations', [\App\Http\Controllers\Web\ClientController::class, 'reservations'])->name('reservations');
+        Route::post('/reservations', [\App\Http\Controllers\Web\ClientController::class, 'createReservation'])->name('createReservation');
+        Route::post('/reservations/{reservation}/pay', [\App\Http\Controllers\Web\ClientController::class, 'payReservation'])->name('payReservation');
+        Route::delete('/reservations/{reservation}', [\App\Http\Controllers\Web\ClientController::class, 'cancelReservation'])->name('cancelReservation');
+    });
+
     // Rutas adicionales para diferentes roles
     Route::get('/pos', [\App\Http\Controllers\Web\PosController::class, 'index'])->name('pos.index')->middleware('role:cajero');
     Route::post('/pos/orders', [\App\Http\Controllers\Web\PosController::class, 'createOrder'])->name('pos.createOrder');
