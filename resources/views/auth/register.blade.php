@@ -25,7 +25,8 @@
             </p>
         </div>
 
-        <form class="mt-8 space-y-6" method="POST" action="{{ route('register') }}">
+        <div class="bg-gray-800  shadow-xl rounded-lg p-8">
+        <form class="space-y-6" method="POST" action="{{ route('register') }}">
             @csrf
 
             <div class="rounded-md shadow-sm -space-y-px">
@@ -97,6 +98,7 @@
                 </button>
             </div>
         </form>
+        </div>
     </div>
 </body>
 </html>

@@ -24,8 +24,8 @@
                 Sistema de Reservas de Canchas de Voleibol
             </p>
         </div>
-        <card >
-        <form class="mt-8 space-y-6" method="POST" action="{{ route('login') }}">
+        <div class="bg-gray-800 shadow-xl rounded-lg p-8">
+        <form class="space-y-6" method="POST" action="{{ route('login') }}">
             @csrf
 
             <div class="rounded-md shadow-sm -space-y-px">
@@ -73,7 +73,7 @@
                 </button>
             </div>
         </form>
-        </card>
+        </div>
         <!-- Usuarios de prueba -->
         <div class="mt-8 bg-white bg-opacity-10 rounded-lg p-4">
             <h3 class="text-lg font-medium text-white mb-3">Usuarios de Prueba:</h3>
