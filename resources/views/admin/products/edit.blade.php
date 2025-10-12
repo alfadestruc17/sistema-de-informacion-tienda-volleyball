@@ -1,8 +1,41 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Producto - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-gray-800">🏐 Arena Sport C.B - Editar Producto</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-700">Admin: {{ Auth::user()->nombre }}</span>
+                    <a href="{{ route('admin.products.index') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        ← Volver
+                    </a>
+                    <form method="POST" action="{{ route('logout') }}" class="inline">
+                        @csrf
+                        <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                            Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-@section('title', 'Editar Producto')
-
-@section('content')
+    <div class="container mx-auto p-4">
+        <div class="max-w-2xl mx-auto bg-white shadow-xl rounded-lg p-6">
+            <div class="mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Editar Producto</h1>
+                <p class="text-gray-600">Modifica la información del producto</p>
+            </div>
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto bg-white shadow-xl rounded-lg p-6">
         <div class="flex justify-between items-center mb-6">
@@ -101,6 +134,7 @@
                 </button>
             </div>
         </form>
+        </div>
     </div>
-</div>
-@endsection
+</body>
+</html>

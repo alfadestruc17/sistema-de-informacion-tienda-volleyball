@@ -1,8 +1,49 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle del Producto - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-gray-800">🏐 Arena Sport C.B - Detalle Producto</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-700">Admin: {{ Auth::user()->nombre }}</span>
+                    <a href="{{ route('admin.products.index') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        ← Volver
+                    </a>
+                    <form method="POST" action="{{ route('logout') }}" class="inline">
+                        @csrf
+                        <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                            Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-@section('title', 'Detalle del Producto')
-
-@section('content')
+    <div class="container mx-auto p-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white shadow-xl rounded-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold text-gray-800">Detalle del Producto</h1>
+                    <div class="flex space-x-2">
+                        <a href="{{ route('admin.products.edit', $product) }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                            <i class="fas fa-edit mr-2"></i> Editar
+                        </a>
+                        <a href="{{ route('admin.products.index') }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                            <i class="fas fa-arrow-left mr-2"></i> Volver
+                        </a>
+                    </div>
+                </div>
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-4xl mx-auto">
         <div class="bg-white shadow-xl rounded-lg p-6">
@@ -120,5 +161,5 @@
             </div>
         </div>
     </div>
-</div>
-@endsection
+</body>
+</html>

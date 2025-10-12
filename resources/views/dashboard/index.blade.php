@@ -48,8 +48,11 @@
                 <a href="{{ route('admin.sales.index') }}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
                     💰 Gestionar Ventas
                 </a>
-                <a href="{{ route('admin.reservations.index') }}" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                <a href="{{ route('admin.reservations.index') }}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
                     📅 Gestionar Reservas
+                </a>
+                <a href="{{ route('admin.products.index') }}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                    📦 Gestionar Productos
                 </a>
                 <a href="{{ route('dashboard.export.sales') }}" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                     📊 Exportar Ventas
