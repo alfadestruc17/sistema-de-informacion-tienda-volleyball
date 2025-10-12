@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalle del Producto - Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-gray-100">
     <!-- Navbar -->
@@ -33,26 +34,15 @@
     <div class="container mx-auto p-4">
         <div class="max-w-4xl mx-auto">
             <div class="bg-white shadow-xl rounded-lg p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-3xl font-bold text-gray-800">Detalle del Producto</h1>
-                    <div class="flex space-x-2">
-                        <a href="{{ route('admin.products.edit', $product) }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                            <i class="fas fa-edit mr-2"></i> Editar
-                        </a>
-                        <a href="{{ route('admin.products.index') }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                            <i class="fas fa-arrow-left mr-2"></i> Volver
-                        </a>
-                    </div>
-                </div>
+                
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-4xl mx-auto">
         <div class="bg-white shadow-xl rounded-lg p-6">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-3xl font-bold text-gray-800">Detalle del Producto</h1>
                 <div class="flex space-x-2">
-                    <a href="{{ route('admin.products.edit', $product) }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                        <i class="fas fa-edit mr-2"></i> Editar
-                    </a>
+                    
+                    </form>
                     <a href="{{ route('admin.products.index') }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         <i class="fas fa-arrow-left mr-2"></i> Volver
                     </a>
