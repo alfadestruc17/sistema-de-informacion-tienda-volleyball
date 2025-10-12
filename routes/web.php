@@ -58,6 +58,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/pos/product/{product_id}', [\App\Http\Controllers\Web\PosController::class, 'getProduct'])->name('pos.product');
 
         // Gestión de ventas
+        // Gestión de productos
+        Route::resource('products', \App\Http\Controllers\Web\ProductController::class);
         Route::resource('sales', \App\Http\Controllers\Web\SaleController::class);
 
         // Gestión de reservas

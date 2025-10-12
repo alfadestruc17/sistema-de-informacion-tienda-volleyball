@@ -12,7 +12,7 @@
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <span class="text-xl font-bold text-gray-800">🏐 Volleyball Booking - Ventas</span>
+                    <span class="text-xl font-bold text-gray-800">🏐 Arena Sport C.B - Ventas</span>
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-gray-700">Admin: {{ Auth::user()->nombre }}</span>

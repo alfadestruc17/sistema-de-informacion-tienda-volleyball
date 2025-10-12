@@ -212,6 +212,85 @@ Cierra la orden y marca como pagada.
 ### Productos
 
 #### GET /api/products
+Obtiene todos los productos disponibles.
+
+**Response (200):**
+```json
+[
+  {
+    "id": 1,
+    "nombre": "Coca Cola 350ml",
+    "categoria": "Bebidas",
+    "precio": 3.50,
+    "stock": 45,
+    "created_at": "2025-10-03T14:00:00.000000Z",
+    "updated_at": "2025-10-03T14:00:00.000000Z"
+  }
+]
+```
+
+#### POST /api/products
+Crea un nuevo producto. (Requiere rol: admin)
+
+**Request Body:**
+```json
+{
+  "nombre": "Coca Cola 350ml",
+  "categoria": "Bebidas",
+  "precio": 3.50,
+  "stock": 50
+}
+```
+
+**Response (201):**
+```json
+{
+  "id": 1,
+  "nombre": "Coca Cola 350ml",
+  "categoria": "Bebidas",
+  "precio": 3.50,
+  "stock": 50,
+  "created_at": "2025-10-03T14:00:00.000000Z",
+  "updated_at": "2025-10-03T14:00:00.000000Z"
+}
+```
+
+#### GET /api/products/{id}
+Obtiene un producto específico.
+
+#### PUT/PATCH /api/products/{id}
+Actualiza un producto. (Requiere rol: admin)
+
+**Request Body:**
+```json
+{
+  "nombre": "Coca Cola 350ml",
+  "categoria": "Bebidas",
+  "precio": 4.00,
+  "stock": 45
+}
+```
+
+#### DELETE /api/products/{id}
+Elimina un producto. (Requiere rol: admin)
+
+### Gestión de Stock
+
+#### Validaciones de Stock
+- Los productos deben tener stock > 0 para ser vendidos
+- El sistema valida stock disponible antes de procesar ventas
+- Si no hay stock suficiente, la venta es rechazada con mensaje de error
+- El stock se reduce automáticamente al procesar ventas exitosas
+- Los administradores pueden actualizar stock desde la interfaz web
+
+#### Estados de Stock
+- **Disponible**: stock > 10 (verde)
+- **Stock Bajo**: stock 1-10 (amarillo)
+- **Agotado**: stock = 0 (rojo)
+
+### Productos
+
+#### GET /api/products
 Obtiene todos los productos.
 
 #### POST /api/products

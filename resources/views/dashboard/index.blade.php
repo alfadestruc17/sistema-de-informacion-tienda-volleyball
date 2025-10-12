@@ -23,7 +23,7 @@
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <span class="text-xl font-bold text-gray-800">🏐 Volleyball Booking</span>
+                    <span class="text-xl font-bold text-gray-800">🏐 Arena Sport C.B</span>
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-gray-700">Hola, {{ Auth::user()->nombre }}</span>
@@ -48,8 +48,11 @@
                 <a href="{{ route('admin.sales.index') }}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
                     💰 Gestionar Ventas
                 </a>
-                <a href="{{ route('admin.reservations.index') }}" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                <a href="{{ route('admin.reservations.index') }}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
                     📅 Gestionar Reservas
+                </a>
+                <a href="{{ route('admin.products.index') }}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                    📦 Gestionar Productos
                 </a>
                 <a href="{{ route('dashboard.export.sales') }}" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                     📊 Exportar Ventas

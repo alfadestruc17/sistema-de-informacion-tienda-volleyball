@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .register-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #c73732 0%, #ca9e23 100%);
         }
     </style>
 </head>
@@ -25,7 +25,8 @@
             </p>
         </div>
 
-        <form class="mt-8 space-y-6" method="POST" action="{{ route('register') }}">
+        <div class="bg-gray-800  shadow-xl rounded-lg p-8">
+        <form class="space-y-6" method="POST" action="{{ route('register') }}">
             @csrf
 
             <div class="rounded-md shadow-sm -space-y-px">
@@ -97,6 +98,7 @@
                 </button>
             </div>
         </form>
+        </div>
     </div>
 </body>
 </html>
