@@ -21,7 +21,7 @@
                     Nombre del Producto *
                 </label>
                 <input type="text" name="nombre" id="nombre" required
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 @error('nombre') border-red-500 @enderror"
+                       class="w-full px-3 py-2 border  rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 @error('nombre') border-red-500 @enderror"
                        value="{{ old('nombre', $product->nombre) }}" placeholder="Ej: Coca Cola 350ml">
                 @error('nombre')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -33,7 +33,7 @@
                     Categoría *
                 </label>
                 <select name="categoria" id="categoria" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 @error('categoria') border-red-500 @enderror">
+                        class="w-full px-3 py-2 border  rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 @error('categoria') border-red-500 @enderror">
                     <option value="">Seleccionar categoría</option>
                     <option value="Bebidas" {{ old('categoria', $product->categoria) == 'Bebidas' ? 'selected' : '' }}>Bebidas</option>
                     <option value="Snacks" {{ old('categoria', $product->categoria) == 'Snacks' ? 'selected' : '' }}>Snacks</option>
@@ -51,7 +51,7 @@
                         Precio (COP) *
                     </label>
                     <input type="number" name="precio" id="precio" required min="0" step="100"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 @error('precio') border-red-500 @enderror"
+                           class="w-full px-3 py-2 border  rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 @error('precio') border-red-500 @enderror"
                            value="{{ old('precio', $product->precio) }}" placeholder="5000">
                     @error('precio')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -63,7 +63,7 @@
                         Stock Actual *
                     </label>
                     <input type="number" name="stock" id="stock" required min="0"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 @error('stock') border-red-500 @enderror"
+                           class="w-full px-3 py-2 border  rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 @error('stock') border-red-500 @enderror"
                            value="{{ old('stock', $product->stock) }}" placeholder="50">
                     @error('stock')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

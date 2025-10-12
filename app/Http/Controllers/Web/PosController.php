@@ -42,7 +42,7 @@ class PosController extends Controller
             foreach ($request->items as $item) {
                 $product = Product::find($item['product_id']);
                 if (!$product->hasStock($item['quantity'])) {
-                    throw new \Exception("Stock insuficiente para {$product->nombre}");
+                    throw new \Exception("Stock insuficiente para {$product->nombre}. Stock disponible: {$product->stock}");
                 }
             }
 
@@ -289,6 +289,14 @@ class PosController extends Controller
         }
 
         DB::transaction(function () use ($cart, $reservation) {
+            // Verificar stock disponible antes de procesar
+            foreach ($cart as $item) {
+                $product = Product::find($item['product']['id']);
+                if (!$product->hasStock($item['cantidad'])) {
+                    throw new \Exception("Stock insuficiente para {$product->nombre}. Stock disponible: {$product->stock}");
+                }
+            }
+
             // Crear venta
             $sale = Sale::create([
                 'user_id' => Auth::id(),
