@@ -1,91 +1,67 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Reservation\CreateReservationRequest;
+use App\Models\Court;
 use App\Models\Reservation;
-use Illuminate\Http\Request;
+use App\Services\ReservationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class ReservationController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(
+        private ReservationService $reservationService
+    ) {
+    }
+
+    public function index(): JsonResponse
     {
         $user = Auth::user();
 
-        // Si es admin o cajero, ver todas las reservas
         if (in_array($user->role->nombre, ['admin', 'cajero'])) {
-            $reservations = Reservation::with(['user', 'court'])->get();
+            $reservations = $this->reservationService->getAll();
         } else {
-            // Si es cliente, solo ver sus reservas
-            $reservations = $user->reservations()->with('court')->get();
+            $reservations = $this->reservationService->getByUser($user->id);
         }
 
         return response()->json($reservations);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(CreateReservationRequest $request): JsonResponse
     {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'court_id' => 'required|exists:courts,id',
-            'fecha' => 'required|date|after_or_equal:today',
-            'hora_inicio' => 'required|date_format:H:i',
-            'duracion_horas' => 'required|integer|min:1|max:8',
-        ]);
-
         $user = Auth::user();
 
-        // Verificar disponibilidad
-        if (!Reservation::isSlotAvailable(
-            $request->court_id,
+        if (!$this->reservationService->isSlotAvailable(
+            (int) $request->court_id,
             $request->fecha,
             $request->hora_inicio,
-            $request->duracion_horas
+            (int) $request->duracion_horas
         )) {
             return response()->json(['message' => 'El horario solicitado no está disponible'], 409);
         }
 
-        // Calcular total estimado
-        $court = \App\Models\Court::find($request->court_id);
-        $totalEstimado = $court->precio_por_hora * $request->duracion_horas;
-
-        $reservation = Reservation::create([
+        $reservation = $this->reservationService->createReservation([
             'user_id' => $user->id,
             'court_id' => $request->court_id,
             'fecha' => $request->fecha,
             'hora_inicio' => $request->hora_inicio,
             'duracion_horas' => $request->duracion_horas,
             'estado' => 'pendiente',
-            'total_estimado' => $totalEstimado,
             'pagado_bool' => false,
         ]);
 
         return response()->json($reservation->load(['user', 'court']), 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(string $id): JsonResponse
     {
         $reservation = Reservation::with(['user', 'court', 'reservationItems'])->findOrFail($id);
-
         $user = Auth::user();
 
-        // Verificar permisos: solo el propietario o admin/cajero pueden ver
         if ($reservation->user_id !== $user->id && !in_array($user->role->nombre, ['admin', 'cajero'])) {
             return response()->json(['message' => 'No autorizado'], 403);
         }
@@ -93,42 +69,23 @@ class ReservationController extends Controller
         return response()->json($reservation);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function destroy(string $id): JsonResponse
     {
-        //
-    }
+        $reservation = $this->reservationService->find((int) $id);
+        if (!$reservation) {
+            return response()->json(['message' => 'Reserva no encontrada'], 404);
+        }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        $reservation = Reservation::findOrFail($id);
         $user = Auth::user();
-
-        // Verificar permisos: solo el propietario o admin/cajero pueden cancelar
         if ($reservation->user_id !== $user->id && !in_array($user->role->nombre, ['admin', 'cajero'])) {
             return response()->json(['message' => 'No autorizado'], 403);
         }
 
-        // Solo permitir cancelar si no está pagada o es reciente
         if ($reservation->pagado_bool) {
             return response()->json(['message' => 'No se puede cancelar una reserva pagada'], 400);
         }
 
-        $reservation->update(['estado' => 'cancelada']);
-
+        $this->reservationService->cancelReservation($reservation);
         return response()->json(['message' => 'Reserva cancelada exitosamente']);
     }
 }

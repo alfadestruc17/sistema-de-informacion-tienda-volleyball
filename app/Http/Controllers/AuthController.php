@@ -1,19 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use Illuminate\Http\Request;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Services\AuthService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    // API Methods (para compatibilidad futura)
-    // Se pueden agregar aquí si se necesitan APIs después
+    public function __construct(
+        private AuthService $authService
+    ) {
+    }
 
-    // Web Methods (sesiones tradicionales)
-    public function showLogin()
+    public function showLogin(): View|RedirectResponse
     {
         if (Auth::check()) {
             return redirect()->route('dashboard');
@@ -21,7 +26,7 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function showRegister()
+    public function showRegister(): View|RedirectResponse
     {
         if (Auth::check()) {
             return redirect()->route('dashboard');
@@ -29,61 +34,28 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
-    public function webLogin(Request $request)
+    public function webLogin(LoginRequest $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string',
-        ]);
-
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        if ($this->authService->attemptLogin($request)) {
             $request->session()->regenerate();
-
-            // Redirigir según rol
             $user = Auth::user();
-            if ($user->role->nombre === 'admin') {
-                return redirect()->route('admin.dashboard');
-            } elseif ($user->role->nombre === 'cajero') {
-                return redirect()->route('pos.index');
-            } else {
-                // Cliente: redirigir al dashboard de cliente
-                return redirect()->route('client.dashboard');
-            }
+            return redirect()->route($this->authService->getRedirectRouteForUser($user));
         }
 
-        return back()->withErrors([
-            'email' => 'Las credenciales proporcionadas no coinciden con nuestros registros.',
-        ])->onlyInput('email');
+        return back()
+            ->withErrors(['email' => 'Las credenciales proporcionadas no coinciden con nuestros registros.'])
+            ->onlyInput('email');
     }
 
-    public function webRegister(Request $request)
+    public function webRegister(RegisterRequest $request): RedirectResponse
     {
-        $request->validate([
-            'nombre' => 'required|string|max:255',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'telefono' => 'nullable|string|max:20',
-        ]);
-
-        $user = User::create([
-            'nombre' => $request->nombre,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'telefono' => $request->telefono,
-            'rol_id' => 3, // cliente por defecto
-        ]);
-
-        Auth::login($user);
-
+        $this->authService->register($request);
         return redirect()->route('client.dashboard')->with('success', 'Cuenta creada exitosamente');
     }
 
-    public function logout(Request $request)
+    public function logout(): RedirectResponse
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
+        $this->authService->logout();
         return redirect()->route('login');
     }
 }

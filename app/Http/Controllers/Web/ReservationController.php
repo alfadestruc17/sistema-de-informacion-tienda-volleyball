@@ -1,134 +1,99 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Court;
+use App\Http\Requests\Reservation\StoreReservationRequest;
+use App\Http\Requests\Reservation\UpdateReservationRequest;
 use App\Models\Reservation;
-use App\Models\User;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
+use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Services\ReservationService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class ReservationController extends Controller
 {
-    public function index()
-    {
-        $reservations = Reservation::with(['user', 'court'])
-            ->orderBy('fecha', 'desc')
-            ->orderBy('hora_inicio', 'desc')
-            ->paginate(15);
+    public function __construct(
+        private ReservationService $reservationService,
+        private UserRepositoryInterface $userRepository
+    ) {
+    }
 
+    public function index(): View
+    {
+        $reservations = $this->reservationService->paginate(15);
         return view('admin.reservations.index', compact('reservations'));
     }
 
-    public function create()
+    public function create(): View
     {
-        $courts = Court::all();
-        $users = User::where('rol_id', '!=', 1)->get(); // Excluir admins
-
+        $courts = \App\Models\Court::all();
+        $users = $this->userRepository->getNonAdmins();
         return view('admin.reservations.create', compact('courts', 'users'));
     }
 
-    public function store(Request $request)
+    public function store(StoreReservationRequest $request): RedirectResponse
     {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'court_id' => 'required|exists:courts,id',
-            'fecha' => 'required|date|after_or_equal:today',
-            'hora_inicio' => 'required|date_format:H:i',
-            'duracion_horas' => 'required|integer|min:1|max:8',
-            'estado' => 'required|in:pendiente,confirmada,cancelada',
-        ]);
+        $data = $request->validated();
 
-        $court = Court::find($request->court_id);
-
-        // Verificar disponibilidad
-        if (!Reservation::isSlotAvailable($request->court_id, $request->fecha, $request->hora_inicio, $request->duracion_horas)) {
+        if (!$this->reservationService->isSlotAvailable(
+            (int) $data['court_id'],
+            $data['fecha'],
+            $data['hora_inicio'],
+            (int) $data['duracion_horas']
+        )) {
             return redirect()->back()->withInput()->with('error', 'El horario seleccionado no está disponible');
         }
 
-        // Calcular total estimado
-        $totalEstimado = $court->precio_por_hora * $request->duracion_horas;
-
-        Reservation::create([
-            'user_id' => $request->user_id,
-            'court_id' => $request->court_id,
-            'fecha' => $request->fecha,
-            'hora_inicio' => $request->hora_inicio,
-            'duracion_horas' => $request->duracion_horas,
-            'estado' => $request->estado,
-            'total_estimado' => $totalEstimado,
-            'pagado_bool' => false,
-        ]);
-
+        $this->reservationService->createReservation(array_merge($data, ['pagado_bool' => false]));
         return redirect()->route('admin.reservations.index')->with('success', 'Reserva creada exitosamente');
     }
 
-    public function show(Reservation $reservation)
+    public function show(Reservation $reservation): View
     {
         $reservation->load(['user', 'court', 'reservationItems']);
-
         return view('admin.reservations.show', compact('reservation'));
     }
 
-    public function edit(Reservation $reservation)
+    public function edit(Reservation $reservation): View
     {
         $reservation->load(['user', 'court']);
-        $courts = Court::all();
-        $users = User::where('rol_id', '!=', 1)->get();
-
+        $courts = \App\Models\Court::all();
+        $users = $this->userRepository->getNonAdmins();
         return view('admin.reservations.edit', compact('reservation', 'courts', 'users'));
     }
 
-    public function update(Request $request, Reservation $reservation)
+    public function update(UpdateReservationRequest $request, Reservation $reservation): RedirectResponse
     {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'court_id' => 'required|exists:courts,id',
-            'fecha' => 'required|date',
-            'hora_inicio' => 'required|date_format:H:i',
-            'duracion_horas' => 'required|integer|min:1|max:8',
-            'estado' => 'required|in:pendiente,confirmada,cancelada',
-            'pagado_bool' => 'boolean',
-        ]);
+        $data = $request->validated();
 
-        // Si cambió la cancha, fecha u hora, verificar disponibilidad
-        if ($request->court_id != $reservation->court_id ||
-            $request->fecha != $reservation->fecha ||
-            $request->hora_inicio != $reservation->hora_inicio ||
-            $request->duracion_horas != $reservation->duracion_horas) {
+        $slotChanged = $data['court_id'] != $reservation->court_id
+            || $data['fecha'] != $reservation->fecha->format('Y-m-d')
+            || $data['hora_inicio'] != $reservation->hora_inicio
+            || $data['duracion_horas'] != $reservation->duracion_horas;
 
-            if (!Reservation::isSlotAvailable($request->court_id, $request->fecha, $request->hora_inicio, $request->duracion_horas, $reservation->id)) {
-                return redirect()->back()->withInput()->with('error', 'El horario seleccionado no está disponible');
-            }
+        if ($slotChanged && !$this->reservationService->isSlotAvailable(
+            (int) $data['court_id'],
+            $data['fecha'],
+            $data['hora_inicio'],
+            (int) $data['duracion_horas'],
+            $reservation->id
+        )) {
+            return redirect()->back()->withInput()->with('error', 'El horario seleccionado no está disponible');
         }
 
-        $court = Court::find($request->court_id);
-        $totalEstimado = $court->precio_por_hora * $request->duracion_horas;
-
-        $reservation->update([
-            'user_id' => $request->user_id,
-            'court_id' => $request->court_id,
-            'fecha' => $request->fecha,
-            'hora_inicio' => $request->hora_inicio,
-            'duracion_horas' => $request->duracion_horas,
-            'estado' => $request->estado,
-            'total_estimado' => $totalEstimado,
-            'pagado_bool' => $request->pagado_bool ?? false,
-        ]);
-
+        $this->reservationService->updateReservation($reservation, $data);
         return redirect()->route('admin.reservations.index')->with('success', 'Reserva actualizada exitosamente');
     }
 
-    public function destroy(Reservation $reservation)
+    public function destroy(Reservation $reservation): RedirectResponse
     {
-        // Solo permitir eliminar reservas canceladas o pendientes
-        if ($reservation->estado === 'confirmada' && $reservation->pagado_bool) {
+        if (!$this->reservationService->canDelete($reservation)) {
             return redirect()->back()->with('error', 'No se puede eliminar una reserva confirmada y pagada');
         }
-
-        $reservation->delete();
-
+        $this->reservationService->delete($reservation);
         return redirect()->route('admin.reservations.index')->with('success', 'Reserva eliminada exitosamente');
     }
 }

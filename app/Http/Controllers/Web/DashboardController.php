@@ -1,28 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Web;
 
-use Illuminate\Http\Request;
+use App\Services\DashboardService;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Sale;
-use App\Models\SaleItem;
-use App\Models\Product;
-use App\Models\Reservation;
-use App\Models\Court;
-use Carbon\Carbon;
+use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private DashboardService $dashboardService
+    ) {
         $this->middleware('auth');
     }
 
-    /**
-     * Dashboard principal - redirige según rol
-     */
-    public function index()
+    public function index(): View|\Illuminate\Http\RedirectResponse
     {
         $user = Auth::user();
 
@@ -30,172 +25,23 @@ class DashboardController extends Controller
             return redirect()->route('client.calendar');
         }
 
-        // Para admin y cajero, mostrar dashboard administrativo
-        $kpis = $this->getKPIs();
-        $weeklyRevenue = $this->getWeeklyRevenueData();
-        $topProducts = $this->getTopProductsData();
-        $weeklyCalendar = $this->getWeeklyCalendarData();
-        $stats = $this->getStatsData();
+        $kpis = $this->dashboardService->getKpisForWeb();
+        $weeklyRevenue = $this->dashboardService->getWeeklyRevenueDataForWeb();
+        $topProducts = $this->dashboardService->getTopProductsForWeb();
+        $weeklyCalendar = $this->dashboardService->getWeeklyCalendarForWeb();
+        $stats = $this->dashboardService->getStatsForWeb();
 
         return view('dashboard.index', compact('kpis', 'weeklyRevenue', 'topProducts', 'weeklyCalendar', 'stats'));
     }
 
-    /**
-     * Dashboard de administrador
-     */
-    public function admin()
+    public function admin(): View
     {
-        // Lógica específica para admin - mostrar dashboard completo
-        $kpis = $this->getKPIs();
-        $weeklyRevenue = $this->getWeeklyRevenueData();
-        $topProducts = $this->getTopProductsData();
-        $weeklyCalendar = $this->getWeeklyCalendarData();
-        $stats = $this->getStatsData();
+        $kpis = $this->dashboardService->getKpisForWeb();
+        $weeklyRevenue = $this->dashboardService->getWeeklyRevenueDataForWeb();
+        $topProducts = $this->dashboardService->getTopProductsForWeb();
+        $weeklyCalendar = $this->dashboardService->getWeeklyCalendarForWeb();
+        $stats = $this->dashboardService->getStatsForWeb();
 
         return view('dashboard.index', compact('kpis', 'weeklyRevenue', 'topProducts', 'weeklyCalendar', 'stats'));
-    }
-
-    private function getKPIs()
-    {
-        $date = Carbon::today();
-
-        return [
-            'daily_sales' => Sale::whereDate('created_at', $date)->where('estado_pago', 'pagado')->sum('total'),
-            'active_reservations' => Reservation::whereDate('fecha', $date)->where('estado', 'confirmada')->count(),
-            'weekly_revenue' => Sale::whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->where('estado_pago', 'pagado')->sum('total'),
-            'weekly_reservations' => Reservation::whereBetween('fecha', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->count(),
-        ];
-    }
-
-    private function getWeeklyRevenueData()
-    {
-        $data = [];
-        $weekStart = Carbon::now()->startOfWeek();
-
-        for ($i = 0; $i < 7; $i++) {
-            $date = $weekStart->copy()->addDays($i);
-            $revenue = Sale::whereDate('created_at', $date)->where('estado_pago', 'pagado')->sum('total');
-            $reservations = Reservation::whereDate('fecha', $date)->count();
-
-            $data[] = [
-                'date' => $date->format('Y-m-d'),
-                'day_name' => $date->locale('es')->dayName,
-                'revenue' => $revenue,
-                'reservations' => $reservations
-            ];
-        }
-
-        return $data;
-    }
-
-    private function getTopProductsData()
-    {
-        return SaleItem::selectRaw('product_id, products.nombre, SUM(cantidad) as total_vendido, SUM(cantidad * precio_unitario) as total_ingresos')
-                       ->join('products', 'sale_items.product_id', '=', 'products.id')
-                       ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-                       ->where('sales.estado_pago', 'pagado')
-                       ->where('sales.created_at', '>=', Carbon::now()->startOfMonth())
-                       ->groupBy('product_id', 'products.nombre')
-                       ->orderBy('total_vendido', 'desc')
-                       ->limit(10)
-                       ->get()
-                       ->toArray();
-    }
-
-    private function getWeeklyCalendarData()
-    {
-        $weekStart = Carbon::now()->startOfWeek();
-        $weekEnd = $weekStart->copy()->endOfWeek();
-
-        $courts = Court::all();
-        $calendarData = [];
-
-        foreach ($courts as $court) {
-            $reservations = Reservation::where('court_id', $court->id)
-                                     ->whereBetween('fecha', [$weekStart, $weekEnd])
-                                     ->with('user')
-                                     ->get();
-
-            $calendarData[] = [
-                'court' => $court,
-                'reservations' => $reservations->map(function ($reservation) {
-                    return [
-                        'id' => $reservation->id,
-                        'fecha' => $reservation->fecha->format('Y-m-d'),
-                        'hora_inicio' => $reservation->hora_inicio,
-                        'duracion_horas' => $reservation->duracion_horas,
-                        'estado' => $reservation->estado,
-                        'cliente' => $reservation->user->nombre,
-                        'total' => $reservation->total_estimado
-                    ];
-                })->toArray()
-            ];
-        }
-
-        return [
-            'week_start' => $weekStart->format('Y-m-d'),
-            'week_end' => $weekEnd->format('Y-m-d'),
-            'courts' => $calendarData
-        ];
-    }
-
-    private function getStatsData()
-    {
-        $dateFrom = Carbon::now()->startOfMonth();
-
-        return [
-            'total_revenue' => Sale::where('estado_pago', 'pagado')->where('created_at', '>=', $dateFrom)->sum('total'),
-            'total_sales' => Sale::where('created_at', '>=', $dateFrom)->count(),
-            'total_reservations' => Reservation::where('fecha', '>=', $dateFrom)->count(),
-            'average_sale_value' => Sale::where('estado_pago', 'pagado')->where('created_at', '>=', $dateFrom)->avg('total') ?? 0
-        ];
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
     }
 }

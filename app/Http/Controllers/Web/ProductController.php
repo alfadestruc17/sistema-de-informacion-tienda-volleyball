@@ -1,95 +1,62 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Web;
 
+use App\Http\Requests\Product\StoreProductRequest;
+use App\Http\Requests\Product\UpdateProductRequest;
 use App\Models\Product;
-use Illuminate\Http\Request;
+use App\Services\ProductService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class ProductController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private ProductService $productService
+    ) {
         $this->middleware('auth');
         $this->middleware('role:admin');
     }
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): View
     {
-        $products = Product::orderBy('categoria')->orderBy('nombre')->get();
-
+        $products = $this->productService->allOrderedByCategoryAndName();
         return view('admin.products.index', compact('products'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): View
     {
         return view('admin.products.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(StoreProductRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'categoria' => 'required|string|max:255',
-            'precio' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-        ]);
-
-        Product::create($validated);
-
+        $this->productService->create($request->validated());
         return redirect()->route('admin.products.index')->with('success', 'Producto creado exitosamente');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Product $product)
+    public function show(Product $product): View
     {
         return view('admin.products.show', compact('product'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Product $product)
+    public function edit(Product $product): View
     {
         return view('admin.products.edit', compact('product'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product): RedirectResponse
     {
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'categoria' => 'required|string|max:255',
-            'precio' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-        ]);
-
-        $product->update($validated);
-
+        $this->productService->update($product, $request->validated());
         return redirect()->route('admin.products.index')->with('success', 'Producto actualizado exitosamente');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Product $product)
+    public function destroy(Product $product): RedirectResponse
     {
-        $product->delete();
-
+        $this->productService->delete($product);
         return redirect()->route('admin.products.index')->with('success', 'Producto eliminado exitosamente');
     }
 }
