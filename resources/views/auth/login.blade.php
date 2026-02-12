@@ -48,13 +48,13 @@
                 {{-- ¿Olvidaste tu contraseña? y Recordarme --}}
                 <div class="flex items-center justify-between text-sm">
                     <a href="#" class="hover:underline" style="color: #6B7280;">¿Olvidaste tu contraseña? </a>
-                    <label class="flex items-center cursor-pointer" style="color: #6B7280;">
-                        <input name="remember" type="checkbox" class="rounded border-gray-400 text-gray-600 focus:ring-gray-400"
-                               style="background-color: #E0DDD4;">
-                        <span class="ml-2">Recordarme</span>
-                    </label>
                 </div>
-
+                
+                <label class="flex items-center cursor-pointer" style="color: #6B7280;">
+                    <input name="remember" type="checkbox" class="rounded border-gray-400 text-gray-600 focus:ring-gray-400"
+                           style="background-color: #E0DDD4;">
+                    <span class="ml-2">Recordarme</span>
+                </label>
                 <button type="submit" class="w-full py-3 px-4 font-medium rounded-lg text-white focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                         style="background-color: #42474E;">
                     Entrar
