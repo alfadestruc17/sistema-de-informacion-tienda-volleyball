@@ -18,8 +18,6 @@ class DashboardController extends Controller
     public function __construct(
         private DashboardService $dashboardService
     ) {
-        $this->middleware('auth:sanctum');
-        $this->middleware('role:admin');
     }
 
     public function kpis(Request $request): JsonResponse

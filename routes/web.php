@@ -66,7 +66,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('reservations', \App\Http\Controllers\Web\ReservationController::class);
     });
 
-    // Exportaciones (usando el controlador API existente)
-    Route::get('/dashboard/export/sales', [\App\Http\Controllers\DashboardController::class, 'exportSales'])->name('dashboard.export.sales');
-    Route::get('/dashboard/export/reservations', [\App\Http\Controllers\DashboardController::class, 'exportReservations'])->name('dashboard.export.reservations');
+    // Exportaciones (solo admin)
+    Route::get('/dashboard/export/sales', [\App\Http\Controllers\DashboardController::class, 'exportSales'])->name('dashboard.export.sales')->middleware('role:admin');
+    Route::get('/dashboard/export/reservations', [\App\Http\Controllers\DashboardController::class, 'exportReservations'])->name('dashboard.export.reservations')->middleware('role:admin');
 });

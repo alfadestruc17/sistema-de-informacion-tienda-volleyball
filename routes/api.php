@@ -17,8 +17,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/orders/{order}/items/{item}', [\App\Http\Controllers\OrderController::class, 'removeItem']);
     Route::patch('/orders/{order}/close', [\App\Http\Controllers\OrderController::class, 'close']);
 
-    // Dashboard routes
-    Route::prefix('dashboard')->group(function () {
+    // Dashboard routes (solo admin)
+    Route::prefix('dashboard')->middleware('role:admin')->group(function () {
         Route::get('/kpis', [\App\Http\Controllers\DashboardController::class, 'kpis']);
         Route::get('/weekly-calendar', [\App\Http\Controllers\DashboardController::class, 'weeklyCalendar']);
         Route::get('/top-products', [\App\Http\Controllers\DashboardController::class, 'topProducts']);
